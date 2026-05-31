@@ -1,9 +1,9 @@
-﻿import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
-export default function Tab1Screen() {
+export default function Tab5Screen() {
   return (
-    <View style={[styles.container, { backgroundColor: '#FF3B30' }]}>
-      <Text style={styles.text}>Red Tab</Text>
+    <View style={[styles.container, { backgroundColor: '#AF52DE' }]}>
+      <Text style={styles.text}>Purple Tab</Text>
     </View>
   );
 }
