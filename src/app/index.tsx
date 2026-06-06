@@ -1,22 +1,5 @@
-﻿import { View, Text, StyleSheet } from 'react-native';
+﻿import { Redirect } from "expo-router";
 
-export default function Tab1Screen() {
-  return (
-    <View style={[styles.container, { backgroundColor: '#FF3B30' }]}>
-      <Text style={styles.text}>Red Tab</Text>
-    </View>
-  );
+export default function Index() {
+  return <Redirect href="/map" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-});

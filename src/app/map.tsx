@@ -1,0 +1,445 @@
+﻿import * as Location from "expo-location";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import MapView, { Marker, type Region } from "react-native-maps";
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+
+const SEARCH_RADIUS_METERS = 25_000;
+
+type PlaceType = "recycling" | "store" | "vending";
+
+const PLACE_TYPE_OPTIONS: Array<{ type: PlaceType; label: string }> = [
+  { type: "recycling", label: "Recycling" },
+  { type: "vending", label: "Bottle/Cans machines" },
+  { type: "store", label: "Large stores" },
+];
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+type Place = {
+  id: string;
+  type: PlaceType;
+  latitude: number;
+  longitude: number;
+  title: string;
+  description: string;
+};
+
+type OverpassElement = {
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+  type: "node" | "way" | "relation";
+};
+
+const getPlaceType = (tags: Record<string, string>): PlaceType | null => {
+  if (tags.amenity === "recycling") return "recycling";
+  if (tags.shop) return "store";
+  if (tags.amenity === "vending_machine") return "vending";
+  return null;
+};
+
+const getMarkerColor = (type: PlaceType) => {
+  if (type === "recycling") return "#22C55E";
+  if (type === "vending") return "#0EA5E9";
+  return "#F59E0B";
+};
+
+const getPlaceTitle = (tags: Record<string, string>, type: PlaceType) => {
+  if (tags.name) return tags.name;
+  if (type === "recycling") return "Recycling point";
+  if (type === "vending") return "Bottle/can return machine";
+  return "Large store";
+};
+
+const getPlaceDescription = (tags: Record<string, string>, type: PlaceType) => {
+  const materials = Object.entries(tags)
+    .filter(([key, value]) => key.startsWith("recycling:") && value === "yes")
+    .map(([key]) => key.replace("recycling:", ""));
+
+  if (materials.length > 0) {
+    return `Accepts: ${materials.join(", ")}`;
+  }
+
+  if (type === "recycling") {
+    return "General recycling location";
+  }
+
+  if (type === "vending") {
+    return "Return point for bottles/cans";
+  }
+
+  return "May have in-store recycling options";
+};
+
+export default function MapScreen() {
+  const [region, setRegion] = useState<Region | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [placesError, setPlacesError] = useState<string | null>(null);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isFiltersRendered, setIsFiltersRendered] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<
+    Record<PlaceType, boolean>
+  >({
+    recycling: true,
+    store: true,
+    vending: true,
+  });
+  const filtersWidth = useSharedValue(92);
+  const dropdownWidth = useSharedValue(180);
+  const dropdownProgress = useSharedValue(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const filteredPlaces = places.filter((place) => selectedTypes[place.type]);
+
+  const filtersButtonAnimatedStyle = useAnimatedStyle(() => ({
+    width: filtersWidth.value,
+  }));
+
+  const filtersDropdownAnimatedStyle = useAnimatedStyle(() => ({
+    width: dropdownWidth.value,
+    opacity: dropdownProgress.value,
+    transform: [
+      {
+        translateY: interpolate(dropdownProgress.value, [0, 1], [-8, 0]),
+      },
+      {
+        scaleY: interpolate(dropdownProgress.value, [0, 1], [0.96, 1]),
+      },
+    ],
+  }));
+
+  const toggleType = (type: PlaceType) => {
+    setSelectedTypes((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  };
+
+  const toggleFilters = () => {
+    setIsFiltersOpen((prev) => {
+      const next = !prev;
+
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+      }
+
+      filtersWidth.value = withTiming(next ? 180 : 92, {
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+      });
+
+      dropdownWidth.value = withTiming(next ? 180 : 168, {
+        duration: 220,
+        easing: Easing.out(Easing.quad),
+      });
+
+      if (next) {
+        setIsFiltersRendered(true);
+        dropdownProgress.value = withTiming(1, {
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+        });
+      } else {
+        dropdownProgress.value = withTiming(0, {
+          duration: 140,
+          easing: Easing.in(Easing.quad),
+        });
+
+        closeTimer.current = setTimeout(() => {
+          setIsFiltersRendered(false);
+          closeTimer.current = null;
+        }, 150);
+      }
+
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const requestAndGetLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationDenied(true);
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const nextRegion = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        latitudeDelta: 0.15,
+        longitudeDelta: 0.15,
+      };
+
+      setRegion(nextRegion);
+    };
+
+    requestAndGetLocation();
+  }, []);
+
+  useEffect(() => {
+    const loadNearbyPlaces = async () => {
+      if (!region) return;
+
+      setIsLoadingPlaces(true);
+      setPlacesError(null);
+
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["amenity"="recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          way["amenity"="recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          relation["amenity"="recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+
+          node["shop"~"supermarket|hypermarket|department_store|mall"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          way["shop"~"supermarket|hypermarket|department_store|mall"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          relation["shop"~"supermarket|hypermarket|department_store|mall"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+
+          node["amenity"="vending_machine"]["vending"~"bottle|reverse_vending|recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          way["amenity"="vending_machine"]["vending"~"bottle|reverse_vending|recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+          relation["amenity"="vending_machine"]["vending"~"bottle|reverse_vending|recycling"](around:${SEARCH_RADIUS_METERS},${region.latitude},${region.longitude});
+        );
+        out center tags qt 300;
+      `;
+
+      try {
+        const response = await fetch(
+          "https://overpass-api.de/api/interpreter",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain",
+            },
+            body: query,
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch map points");
+        }
+
+        const data = (await response.json()) as {
+          elements?: OverpassElement[];
+        };
+        const uniquePlaces = new Map<string, Place>();
+
+        for (const element of data.elements ?? []) {
+          const latitude = element.lat ?? element.center?.lat;
+          const longitude = element.lon ?? element.center?.lon;
+          const tags = element.tags ?? {};
+          const type = getPlaceType(tags);
+
+          if (!latitude || !longitude || !type) {
+            continue;
+          }
+
+          const id = `${element.type}-${element.id}`;
+
+          uniquePlaces.set(id, {
+            id,
+            type,
+            latitude,
+            longitude,
+            title: getPlaceTitle(tags, type),
+            description: getPlaceDescription(tags, type),
+          });
+        }
+
+        setPlaces(Array.from(uniquePlaces.values()));
+      } catch {
+        setPlacesError("Could not load nearby recycling points");
+      } finally {
+        setIsLoadingPlaces(false);
+      }
+    };
+
+    loadNearbyPlaces();
+  }, [region]);
+
+  if (!region && !locationDenied) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (locationDenied) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.message}>
+          Enable location services in your device settings.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        initialRegion={region}
+        showsUserLocation
+        onPress={() => setIsFiltersOpen(false)}
+        onPanDrag={() => setIsFiltersOpen(false)}
+      >
+        {filteredPlaces.map((place) => (
+          <Marker
+            key={place.id}
+            coordinate={{
+              latitude: place.latitude,
+              longitude: place.longitude,
+            }}
+            title={place.title}
+            description={place.description}
+            pinColor={getMarkerColor(place.type)}
+          />
+        ))}
+      </MapView>
+
+      <View style={styles.filtersContainer}>
+        <AnimatedPressable
+          style={[styles.filtersButton, filtersButtonAnimatedStyle]}
+          onPress={toggleFilters}
+        >
+          <Text style={styles.filtersButtonText}>Filters ▾</Text>
+        </AnimatedPressable>
+
+        {isFiltersRendered ? (
+          <Animated.View
+            style={[styles.filtersDropdown, filtersDropdownAnimatedStyle]}
+            pointerEvents={isFiltersOpen ? "auto" : "none"}
+          >
+            {PLACE_TYPE_OPTIONS.map((option) => {
+              const isSelected = selectedTypes[option.type];
+
+              return (
+                <Pressable
+                  key={option.type}
+                  style={styles.filterItem}
+                  onPress={() => toggleType(option.type)}
+                >
+                  <Text style={styles.filterCheckbox}>
+                    {isSelected ? "☑" : "☐"}
+                  </Text>
+                  <Text style={styles.filterLabel}>{option.label}</Text>
+                </Pressable>
+              );
+            })}
+          </Animated.View>
+        ) : null}
+      </View>
+
+      {isLoadingPlaces ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            Loading nearby recycling points...
+          </Text>
+        </View>
+      ) : null}
+
+      {placesError ? (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{placesError}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  map: {
+    flex: 1,
+  },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+  },
+  message: {
+    textAlign: "center",
+  },
+  badge: {
+    position: "absolute",
+    bottom: 24,
+    left: 16,
+    right: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(15, 23, 42, 0.82)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  badgeText: {
+    color: "#fff",
+    textAlign: "center",
+  },
+  filtersContainer: {
+    position: "absolute",
+    top: 52,
+    left: 12,
+  },
+  filtersButton: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    overflow: "hidden",
+  },
+  filtersButtonText: {
+    color: "#000",
+    fontWeight: "600",
+  },
+  filtersDropdown: {
+    marginTop: 8,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 6,
+    width: 180,
+    maxWidth: 180,
+    alignSelf: "flex-start",
+    overflow: "hidden",
+    transformOrigin: "top left",
+  },
+  filterItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  filterCheckbox: {
+    color: "#000",
+    marginRight: 8,
+    fontSize: 14,
+  },
+  filterLabel: {
+    color: "#000",
+  },
+});
