@@ -7,12 +7,10 @@ export default function ScannerScreen() {
   const [facing, setFacing] = useState<'back' | 'front'>('back');
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View style={styles.container} />;
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.containerCentered}>
         <Text style={styles.message}>We need your permission to access the camera</Text>
