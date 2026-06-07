@@ -1,43 +1,37 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Ignore everything by default
+/*
 
-# dependencies
-node_modules/
+# Keep gitignore itself
+!/.gitignore
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# Allow only project folders to publish
+!/.vscode/
+!/.vscode/**
+!/assets/
+!/assets/**
+!/scripts/
+!/scripts/**
+!/src/
+!/src/**
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Allow only root files to publish
+!/.gitignore
+!/LICENSE
+!/README.md
+!/app.json
+!/package.json
+!/package-lock.json
+!/tsconfig.json
 
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-example
-
-# generated native folders
-/ios
-/android
+# Always ignore sensitive/env/private files even if added in allowed folders
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.p8
+**/*.p12
+**/*.jks
+**/*.keystore
+**/*.mobileprovision
+**/GoogleService-Info.plist
+**/google-services.json
