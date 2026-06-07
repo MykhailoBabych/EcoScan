@@ -341,8 +341,15 @@ export default function MapScreen() {
                   style={styles.filterItem}
                   onPress={() => toggleType(option.type)}
                 >
-                  <Text style={styles.filterCheckbox}>
-                    {isSelected ? "☑" : "☐"}
+                  <Text
+                    style={[
+                      styles.filterCheckbox,
+                      isSelected
+                        ? styles.filterCheckboxSelected
+                        : styles.filterCheckboxUnselected,
+                    ]}
+                  >
+                    {isSelected ? "✓" : "✕"}
                   </Text>
                   <Text style={styles.filterLabel}>{option.label}</Text>
                 </Pressable>
@@ -407,19 +414,19 @@ const styles = StyleSheet.create({
     left: 12,
   },
   filtersButton: {
-    backgroundColor: "#fff",
+    backgroundColor: "#0a84ff",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     overflow: "hidden",
   },
   filtersButtonText: {
-    color: "#000",
+    color: "#fff",
     fontWeight: "600",
   },
   filtersDropdown: {
     marginTop: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "#0a84ff",
     borderRadius: 10,
     paddingVertical: 6,
     width: 180,
@@ -435,11 +442,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   filterCheckbox: {
-    color: "#000",
+    width: 18,
     marginRight: 8,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 18,
+    textAlign: "center",
+  },
+  filterCheckboxSelected: {
+    color: "#fff",
+  },
+  filterCheckboxUnselected: {
+    color: "rgba(255, 214, 214, 0.9)",
   },
   filterLabel: {
-    color: "#000",
+    color: "#fff",
   },
 });
