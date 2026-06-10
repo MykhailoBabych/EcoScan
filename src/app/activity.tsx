@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 
-// Структура для ачивок, чтобы легко было добавлять новые
+// achievment object
 export type Achievement = {
   id: string;
   title: string;
@@ -21,6 +21,7 @@ export type Achievement = {
   icon: SymbolViewProps["name"];
 };
 
+// for testing purpose
 const LEADERBOARD = [
   { rank: 1, name: "EcoWarrior99", score: 1250 },
   { rank: 2, name: "GreenEarth", score: 1100 },
@@ -47,21 +48,21 @@ export function ActivityScreenContent() {
     "main",
   );
   const theme = useTheme();
-  const { scansCount } = useProfile();
+  const { totalScans } = useProfile();
 
   const ACHIEVEMENTS: Achievement[] = [
     {
       id: "1",
       title: "First Scan",
       description: "Scan an object for the first time",
-      completed: scansCount >= 1,
+      completed: totalScans >= 1,
       icon: "qrcode.viewfinder",
     },
     {
       id: "2",
       title: "Seasoned Ecologist",
       description: "Scan 10 objects",
-      completed: scansCount >= 10,
+      completed: totalScans >= 10,
       icon: "leaf.fill",
     },
   ];

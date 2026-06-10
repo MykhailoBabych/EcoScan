@@ -1,28 +1,23 @@
 import { useProfile } from "@/contexts/ProfileContext";
-import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
   children: React.ReactNode;
 };
 
+// AppShell in _layout.tsx already gates the app behind onboarding,
+// so this component will always render children when tabs are visible.
+// Kept as a safety net in case of direct deep-link navigation.
 export function SignInPrompt({ children }: Props) {
-  const { step } = useProfile();
-  const router = useRouter();
+  const { isProfileComplete } = useProfile();
 
-  if (step === "done") {
+  if (isProfileComplete) {
     return <>{children}</>;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.message}>
-        {"Please "}
-        <Text style={styles.link} onPress={() => router.navigate("/(tabs)/profile")}>
-          sign in
-        </Text>
-        {" to continue"}
-      </Text>
+      <Text style={styles.message}>Please complete onboarding first.</Text>
     </View>
   );
 }
@@ -40,11 +35,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "500",
     textAlign: "center",
-  },
-  link: {
-    color: "#0a84ff",
-    fontSize: 20,
-    fontWeight: "600",
-    textDecorationLine: "underline",
   },
 });

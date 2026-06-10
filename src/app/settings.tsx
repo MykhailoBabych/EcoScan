@@ -37,8 +37,8 @@ export function SettingsScreenContent() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            resetProfile();
+          onPress: async () => {
+            await resetProfile();
             Alert.alert("Success", "Profile has been reset.");
           },
         },

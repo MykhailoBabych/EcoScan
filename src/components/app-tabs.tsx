@@ -15,27 +15,27 @@ export default function AppTabs() {
     >
       <NativeTabs.Trigger name="map">
         <Label>Map</Label>
-        <Icon src={require("@/assets/images/tabIcons/home.png")} />
+        <Icon sf={{ default: "map", selected: "map.fill" }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="activity">
         <Label>Activity</Label>
-        <Icon src={require("@/assets/images/tabIcons/explore.png")} />
+        <Icon sf="list.bullet" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="scanner">
         <Label>Scan</Label>
-        <Icon src={require("@/assets/images/tabIcons/home.png")} />
+        <Icon sf="viewfinder" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
         <Label>Profile</Label>
-        <Icon src={require("@/assets/images/tabIcons/home.png")} />
+        <Icon sf={{ default: "person", selected: "person.fill" }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">
         <Label>Settings</Label>
-        <Icon src={require("@/assets/images/tabIcons/explore.png")} />
+        <Icon sf={{ default: "gearshape", selected: "gearshape.fill" }} />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
