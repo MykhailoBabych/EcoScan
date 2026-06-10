@@ -39,21 +39,21 @@ export default function ActivityScreen() {
     "main",
   );
   const theme = useTheme();
-  const { scansCount } = useProfile();
+  const { totalScans } = useProfile();
 
   const ACHIEVEMENTS: Achievement[] = [
     {
       id: "1",
       title: "My first scan!",
       description: "Scan an object for the first time",
-      completed: scansCount >= 1,
+      completed: totalScans >= 1,
       icon: "qrcode.viewfinder",
     },
     {
       id: "2",
       title: "Experienced Environmentalist",
       description: "Scan 10 objects",
-      completed: scansCount >= 10,
+      completed: totalScans >= 10,
       icon: "leaf.fill",
     },
   ];
