@@ -344,7 +344,7 @@ export default function ScannerScreen() {
           {result.pointsEarned !== undefined && (
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
-                +{result.pointsEarned} Eco Points
+                +{result.pointsEarned} Eco Points 🌿
               </Text>
             </View>
           )}
@@ -361,7 +361,7 @@ export default function ScannerScreen() {
                   tab === "recycle" && styles.tabTextActive,
                 ]}
               >
-                Recycle
+                ♻️ Recycle
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -377,7 +377,7 @@ export default function ScannerScreen() {
                   tab === "upcycle" && styles.tabTextActive,
                 ]}
               >
-                Upcycle
+                ✨ Upcycle
               </Text>
             </TouchableOpacity>
           </View>
@@ -401,7 +401,7 @@ export default function ScannerScreen() {
             ) : (
               result.upcyclingIdeas.map((idea, i) => (
                 <View key={i} style={styles.ideaRow}>
-                  <Text style={styles.ideaBullet}>-</Text>
+                  <Text style={styles.ideaBullet}>✨</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.ideaTitle}>{idea.title}</Text>
                     {!!idea.description && (
