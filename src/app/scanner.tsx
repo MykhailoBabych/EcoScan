@@ -1,11 +1,13 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { WasteCategory } from "@/services/profile";
+import { getUpcyclingIdeas, UpcyclingIdea } from "@/services/upcycling-ai";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Button,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -135,8 +137,6 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
       }
     }
   }
-
-  // First non-ignored label
   for (const label of labels) {
     const desc = label.description.toLowerCase();
     if (!IGNORED_WORDS.some((iw) => desc.includes(iw))) {
@@ -148,13 +148,25 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
       };
     }
   }
-
   return {
     label: labels[0]?.description || "Unknown Object",
     advice: "Item not recognized. When in doubt, throw it out!",
     category: "unknown",
   };
 };
+
+// ─── Result type ──────────────────────────────────────────────────────────────
+
+type ScanResult = EcoAdvice & {
+  pointsEarned: number;
+  upcyclingIdeas: UpcyclingIdea[];
+  upcyclingLoading: boolean;
+};
+
+type ResultTab = "recycle" | "upcycle";
+
+const ideaToProfileText = (idea: UpcyclingIdea) =>
+  idea.description ? `${idea.title}: ${idea.description}` : idea.title;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -164,11 +176,10 @@ export default function ScannerScreen() {
   const [zoom, setZoom] = useState(0);
   const cameraRef = useRef<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<
-    (EcoAdvice & { pointsEarned?: number }) | null
-  >(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [tab, setTab] = useState<ResultTab>("recycle");
 
-  const { recordScan } = useProfile();
+  const { recordScan, updateScanUpcyclingIdeas } = useProfile();
 
   if (!permission) return <View style={styles.container} />;
 
@@ -191,6 +202,7 @@ export default function ScannerScreen() {
     try {
       setAnalyzing(true);
       setResult(null);
+      setTab("recycle");
 
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
@@ -199,7 +211,6 @@ export default function ScannerScreen() {
       const labels = await analyzeImage(photo.base64);
 
       if (!labels) return;
-
       if (labels.length === 0) {
         Alert.alert("No object detected", "Please try again.");
         return;
@@ -207,20 +218,36 @@ export default function ScannerScreen() {
 
       const advice = getEcoAdvice(labels);
 
-      if (advice.category === "unknown") {
-        setResult(advice);
-        return;
-      }
-
-      // ── Record scan in profile ──────────────────────────────────────────
-      const { pointsEarned } = await recordScan({
+      const { pointsEarned, scanId } = await recordScan({
         objectLabel: advice.label,
         category: advice.category,
         recyclingAdvice: advice.advice,
-        upcyclingIdeas: [], // will be filled in Stage 5 (Upcycling AI)
+        upcyclingIdeas: [],
       });
 
-      setResult({ ...advice, pointsEarned });
+      // Show result immediately with upcycling loading
+      setResult({
+        ...advice,
+        pointsEarned,
+        upcyclingIdeas: [],
+        upcyclingLoading: true,
+      });
+
+      getUpcyclingIdeas(advice.label, advice.category)
+        .then(async (ideas) => {
+          await updateScanUpcyclingIdeas(scanId, ideas.map(ideaToProfileText));
+          setResult((prev) =>
+            prev
+              ? { ...prev, upcyclingIdeas: ideas, upcyclingLoading: false }
+              : prev,
+          );
+        })
+        .catch((error) => {
+          console.warn("Upcycling ideas failed:", error);
+          setResult((prev) =>
+            prev ? { ...prev, upcyclingLoading: false } : prev,
+          );
+        });
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to analyze image.");
@@ -246,14 +273,11 @@ export default function ScannerScreen() {
           }),
         },
       );
-
       const data = await response.json();
-
       if (data.error) {
         Alert.alert("API Error", data.error.message || "Vision API error.");
         return null;
       }
-
       return data.responses?.[0]?.labelAnnotations ?? [];
     } catch (e) {
       console.error("Fetch error:", e);
@@ -269,7 +293,6 @@ export default function ScannerScreen() {
         zoom={zoom}
         ref={cameraRef}
       >
-        {/* Flip button */}
         <View style={styles.topControls}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -279,7 +302,6 @@ export default function ScannerScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Scan button */}
         <View style={styles.buttonContainer} pointerEvents="box-none">
           <TouchableOpacity
             style={[styles.captureButton, analyzing && styles.buttonDisabled]}
@@ -294,7 +316,6 @@ export default function ScannerScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Zoom controls */}
         <View
           style={[styles.sideControls, { zIndex: 100 }]}
           pointerEvents="box-none"
@@ -318,17 +339,79 @@ export default function ScannerScreen() {
       {/* Result card */}
       {result && (
         <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>Detected: {result.label}</Text>
-          <Text style={styles.resultAdvice}>{result.advice}</Text>
+          <Text style={styles.resultTitle}>{result.label}</Text>
 
-          {/* Points toast */}
           {result.pointsEarned !== undefined && (
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
-                +{result.pointsEarned} Eco Points 🌿
+                +{result.pointsEarned} Eco Points
               </Text>
             </View>
           )}
+
+          {/* Tabs */}
+          <View style={styles.tabRow}>
+            <TouchableOpacity
+              style={[styles.tabButton, tab === "recycle" && styles.tabActive]}
+              onPress={() => setTab("recycle")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  tab === "recycle" && styles.tabTextActive,
+                ]}
+              >
+                Recycle
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                tab === "upcycle" && styles.tabActiveUpcycle,
+              ]}
+              onPress={() => setTab("upcycle")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  tab === "upcycle" && styles.tabTextActive,
+                ]}
+              >
+                Upcycle
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Tab content */}
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={{ paddingBottom: 4 }}
+          >
+            {tab === "recycle" ? (
+              <Text style={styles.resultAdvice}>{result.advice}</Text>
+            ) : result.upcyclingLoading ? (
+              <View style={styles.upcycleLoading}>
+                <ActivityIndicator color="#8b5cf6" />
+                <Text style={styles.upcycleLoadingText}>Generating ideas...</Text>
+              </View>
+            ) : result.upcyclingIdeas.length === 0 ? (
+              <Text style={styles.resultAdvice}>
+                No upcycling ideas available yet.
+              </Text>
+            ) : (
+              result.upcyclingIdeas.map((idea, i) => (
+                <View key={i} style={styles.ideaRow}>
+                  <Text style={styles.ideaBullet}>-</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.ideaTitle}>{idea.title}</Text>
+                    {!!idea.description && (
+                      <Text style={styles.ideaDesc}>{idea.description}</Text>
+                    )}
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
 
           <TouchableOpacity
             style={styles.closeButton}
@@ -406,18 +489,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 15,
     alignItems: "center",
+    maxHeight: 360,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 5,
   },
-  resultTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
-  resultAdvice: {
-    fontSize: 16,
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
     textAlign: "center",
-    marginBottom: 12,
-    color: "#333",
   },
 
   pointsBadge: {
@@ -428,6 +511,46 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pointsBadgeText: { color: "#1a7f3c", fontWeight: "700", fontSize: 15 },
+
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: "#f0f0f0",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 12,
+    width: "100%",
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 9,
+    alignItems: "center",
+  },
+  tabActive: { backgroundColor: "#28a745" },
+  tabActiveUpcycle: { backgroundColor: "#8b5cf6" },
+  tabText: { fontSize: 15, fontWeight: "600", color: "#666" },
+  tabTextActive: { color: "#fff" },
+
+  tabContent: { width: "100%", maxHeight: 160, marginBottom: 12 },
+  resultAdvice: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#333",
+    paddingVertical: 8,
+  },
+
+  upcycleLoading: { alignItems: "center", paddingVertical: 24, gap: 8 },
+  upcycleLoadingText: { color: "#8b5cf6", fontSize: 14 },
+
+  ideaRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  ideaBullet: { fontSize: 16 },
+  ideaTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
+  ideaDesc: { fontSize: 13, color: "#666", marginTop: 2, lineHeight: 18 },
 
   closeButton: {
     backgroundColor: "#007bff",

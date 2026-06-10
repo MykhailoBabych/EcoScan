@@ -8,7 +8,6 @@ import React, {
 } from 'react';
 
 import {
-  WasteCategory,
   ScanRecord,
   UserProfile,
   ProfileService,
@@ -34,7 +33,8 @@ type ProfileContextType = {
   completeOnboarding: (name: string, characterIndex: number) => Promise<void>;
   recordScan: (
     scan: Omit<ScanRecord, 'id' | 'timestamp'>
-  ) => Promise<{ pointsEarned: number }>;
+  ) => Promise<{ pointsEarned: number; scanId: string }>;
+  updateScanUpcyclingIdeas: (scanId: string, ideas: string[]) => Promise<void>;
   resetProfile: () => Promise<void>;
 };
 
@@ -102,7 +102,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         },
         scanHistory: [record, ...p.scanHistory].slice(0, 100),
       }));
-      return { pointsEarned };
+      return { pointsEarned, scanId: record.id };
+    },
+    [updateProfile]
+  );
+
+  const updateScanUpcyclingIdeas = useCallback(
+    async (scanId: string, ideas: string[]) => {
+      await updateProfile((p) => ({
+        ...p,
+        scanHistory: p.scanHistory.map((scan) =>
+          scan.id === scanId ? { ...scan, upcyclingIdeas: ideas } : scan
+        ),
+      }));
     },
     [updateProfile]
   );
@@ -132,6 +144,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         levelProgress,
         completeOnboarding,
         recordScan,
+        updateScanUpcyclingIdeas,
         resetProfile,
       }}
     >
