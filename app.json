@@ -40,7 +40,8 @@
         {
           "cameraPermission": "Allow this app to access your camera to take photos."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -26,6 +26,7 @@ type ProfileContextType = {
   isLoading: boolean;
   isProfileComplete: boolean;
   name: string;
+  email: string;
   characterIndex: number;
   ecoPoints: number;
   totalScans: number;
@@ -40,7 +41,10 @@ type ProfileContextType = {
     characterIndex: number,
     useType: UseType,
     schoolRole: SchoolRole | null,
+    email: string,
   ) => Promise<void>;
+  reloadProfile: () => Promise<void>;
+  awardPoints: (points: number) => Promise<void>;
   recordScan: (
     scan: Omit<ScanRecord, 'id' | 'timestamp'>
   ) => Promise<{ pointsEarned: number }>;
@@ -82,11 +86,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       characterIndex: number,
       useType: UseType,
       schoolRole: SchoolRole | null,
+      email: string,
     ) => {
-      await updateProfile((prev) => ({ ...prev, name, characterIndex, useType, schoolRole }));
+      await updateProfile((prev) => ({ ...prev, name, email, characterIndex, useType, schoolRole }));
     },
     [updateProfile]
   );
+
+  const awardPoints = useCallback(
+    async (points: number) => {
+      await updateProfile((p) => ({ ...p, ecoPoints: p.ecoPoints + points }));
+    },
+    [updateProfile]
+  );
+
+  const reloadProfile = useCallback(async () => {
+    setIsLoading(true);
+    const saved = await ProfileService.load();
+    if (saved) setProfile(saved);
+    setIsLoading(false);
+  }, []);
 
   const recordScan = useCallback(
     async (scan: Omit<ScanRecord, 'id' | 'timestamp'>) => {
@@ -137,6 +156,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isProfileComplete,
         name: profile.name,
+        email: profile.email,
         characterIndex: profile.characterIndex,
         ecoPoints: profile.ecoPoints,
         totalScans: profile.totalScans,
@@ -147,6 +167,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         level,
         levelProgress,
         completeOnboarding,
+        reloadProfile,
+        awardPoints,
         recordScan,
         resetProfile,
       }}

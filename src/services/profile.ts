@@ -1,4 +1,5 @@
 import { Storage, STORAGE_KEYS } from './storage';
+import { supabase } from './supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ export type SchoolRole = 'teacher' | 'student';
 
 export type UserProfile = {
   name: string;
+  email: string;
   characterIndex: number;
   ecoPoints: number;
   totalScans: number;
@@ -93,6 +95,7 @@ export function calcPointsForScan(
 export function emptyProfile(): UserProfile {
   return {
     name: '',
+    email: '',
     characterIndex: 0,
     ecoPoints: 0,
     totalScans: 0,
@@ -110,22 +113,129 @@ export function emptyProfile(): UserProfile {
 }
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
+// Strategy: AsyncStorage = fast local cache; Supabase = source of truth.
+// On load: try remote first, fall back to cache. On save: write both.
 
 export const ProfileService = {
+  // ── Load ─────────────────────────────────────────────────────────────────────
   async load(): Promise<UserProfile | null> {
-    return Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+
+      // Fetch profile row
+      const { data: row, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !row) {
+        // No row yet — fall back to local cache
+        return Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+      }
+
+      // Fetch scan history (latest 100)
+      const { data: scans } = await supabase
+        .from('scan_history')
+        .select('*')
+        .eq('profile_id', user.id)
+        .order('timestamp_ms', { ascending: false })
+        .limit(100);
+
+      const scanHistory: ScanRecord[] = (scans ?? []).map((s) => ({
+        id: s.id,
+        timestamp: s.timestamp_ms,
+        objectLabel: s.object_label,
+        category: s.category as WasteCategory,
+        recyclingAdvice: s.recycling_advice,
+        upcyclingIdeas: s.upcycling_ideas ?? [],
+      }));
+
+      const profile: UserProfile = {
+        name: row.name,
+        email: row.email ?? '',
+        characterIndex: row.character_index,
+        ecoPoints: row.eco_points,
+        totalScans: row.total_scans,
+        scanStreak: row.scan_streak,
+        lastScanDate: row.last_scan_date ?? null,
+        categoryStats: row.category_stats,
+        scanHistory,
+        useType: row.use_type ?? null,
+        schoolRole: row.school_role ?? null,
+      };
+
+      // Update local cache
+      await Storage.set(STORAGE_KEYS.PROFILE, profile);
+      return profile;
+    } catch {
+      return Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+    }
   },
 
+  // ── Save ─────────────────────────────────────────────────────────────────────
   async save(profile: UserProfile): Promise<boolean> {
-    // Keep only the last 100 scans in storage
-    const toSave: UserProfile = {
+    const trimmed: UserProfile = {
       ...profile,
       scanHistory: profile.scanHistory.slice(0, 100),
     };
-    return Storage.set(STORAGE_KEYS.PROFILE, toSave);
+
+    // Always write local cache first (works offline)
+    await Storage.set(STORAGE_KEYS.PROFILE, trimmed);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return true;
+
+      // Upsert profile row
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        name: trimmed.name,
+        email: trimmed.email || null,
+        character_index: trimmed.characterIndex,
+        eco_points: trimmed.ecoPoints,
+        total_scans: trimmed.totalScans,
+        scan_streak: trimmed.scanStreak,
+        last_scan_date: trimmed.lastScanDate,
+        category_stats: trimmed.categoryStats,
+        use_type: trimmed.useType,
+        school_role: trimmed.schoolRole,
+      }, { onConflict: 'id' });
+
+      // Sync latest scan if there is one
+      if (trimmed.scanHistory.length > 0) {
+        const latest = trimmed.scanHistory[0];
+        await supabase.from('scan_history').upsert({
+          id: latest.id,
+          profile_id: user.id,
+          timestamp_ms: latest.timestamp,
+          object_label: latest.objectLabel,
+          category: latest.category,
+          recycling_advice: latest.recyclingAdvice,
+          upcycling_ideas: latest.upcyclingIdeas,
+        }, { onConflict: 'id' });
+      }
+    } catch (e) {
+      console.warn('[ProfileService] remote save failed:', e);
+    }
+
+    return true;
   },
 
+  // ── Clear ────────────────────────────────────────────────────────────────────
   async clear(): Promise<boolean> {
-    return Storage.remove(STORAGE_KEYS.PROFILE);
+    await Storage.remove(STORAGE_KEYS.PROFILE);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').delete().eq('id', user.id);
+      }
+    } catch (e) {
+      console.warn('[ProfileService] remote clear failed:', e);
+    }
+
+    return true;
   },
 };

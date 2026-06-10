@@ -24,9 +24,11 @@ export function SettingsScreen() {
 
 export function SettingsScreenContent() {
   const [view, setView] = useState("main");
-  const { resetProfile } = useProfile();
+  const { resetProfile, schoolRole } = useProfile();
   const theme = useTheme();
   const router = useRouter();
+  const isTeacher = schoolRole === 'teacher';
+  const isStudent = schoolRole === 'student';
 
   const handleResetProfile = () => {
     Alert.alert(
@@ -157,6 +159,54 @@ export function SettingsScreenContent() {
         </Text>
       </View>
       <ScrollView style={styles.scrollView}>
+        {/* Student-only section */}
+        {isStudent && (
+          <View
+            style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+          >
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => router.push("/student-lessons")}
+            >
+              <View style={styles.rowLeft}>
+                <View
+                  style={[styles.iconContainer, { backgroundColor: "#0a84ff" }]}
+                >
+                  <SymbolView name="book.fill" size={20} tintColor="#fff" />
+                </View>
+                <Text style={[styles.rowText, { color: theme.text }]}>
+                  Lessons
+                </Text>
+              </View>
+              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Teacher-only section */}
+        {isTeacher && (
+          <View
+            style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+          >
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => router.push("/lessons")}
+            >
+              <View style={styles.rowLeft}>
+                <View
+                  style={[styles.iconContainer, { backgroundColor: "#30d158" }]}
+                >
+                  <SymbolView name="book.fill" size={20} tintColor="#fff" />
+                </View>
+                <Text style={[styles.rowText, { color: theme.text }]}>
+                  Lessons
+                </Text>
+              </View>
+              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View
           style={[styles.section, { backgroundColor: theme.backgroundElement }]}
         >

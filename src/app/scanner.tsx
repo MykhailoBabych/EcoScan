@@ -6,6 +6,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import { useProfile } from '@/contexts/ProfileContext';
 import { WasteCategory } from '@/services/profile';
+import { StudentLessonsService } from '@/services/lessons';
 
 // ─── Category mapping ─────────────────────────────────────────────────────────
 
@@ -101,9 +102,9 @@ export function ScannerScreen() {
   const [zoom, setZoom] = useState(0);
   const cameraRef = useRef<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<(EcoAdvice & { pointsEarned?: number }) | null>(null);
+  const [result, setResult] = useState<(EcoAdvice & { pointsEarned?: number; lessonCompleted?: { topic: string; xpReward: number; pointsReward: number } }) | null>(null);
 
-  const { recordScan } = useProfile();
+  const { recordScan, schoolRole, awardPoints } = useProfile();
 
   if (!permission) return <View style={styles.container} />;
 
@@ -142,10 +143,25 @@ export function ScannerScreen() {
         objectLabel: advice.label,
         category: advice.category,
         recyclingAdvice: advice.advice,
-        upcyclingIdeas: [],   // will be filled in Stage 5 (Upcycling AI)
+        upcyclingIdeas: [],
       });
 
-      setResult({ ...advice, pointsEarned });
+      // ── Check if scan completes an active lesson (students only) ────────
+      let lessonCompleted: { topic: string; xpReward: number; pointsReward: number } | undefined;
+      if (schoolRole === 'student') {
+        const completed = await StudentLessonsService.tryComplete(advice.label);
+        if (completed) {
+          lessonCompleted = {
+            topic: completed.topic,
+            xpReward: completed.xpReward,
+            pointsReward: completed.pointsReward,
+          };
+          // Award lesson XP + points to student's profile
+          await awardPoints(completed.xpReward + completed.pointsReward);
+        }
+      }
+
+      setResult({ ...advice, pointsEarned, lessonCompleted });
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to analyze image.');
@@ -238,6 +254,17 @@ export function ScannerScreen() {
             </View>
           )}
 
+          {/* Lesson completed toast */}
+          {result.lessonCompleted && (
+            <View style={styles.lessonBadge}>
+              <Text style={styles.lessonBadgeTitle}>📚 Lesson Complete!</Text>
+              <Text style={styles.lessonBadgeName}>{result.lessonCompleted.topic}</Text>
+              <Text style={styles.lessonBadgeReward}>
+                ⚡ +{result.lessonCompleted.xpReward} XP  ·  🌿 +{result.lessonCompleted.pointsReward} pts
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity style={styles.closeButton} onPress={() => setResult(null)}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -284,6 +311,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6, paddingHorizontal: 16, marginBottom: 12,
   },
   pointsBadgeText: { color: '#1a7f3c', fontWeight: '700', fontSize: 15 },
+
+  lessonBadge: {
+    backgroundColor: '#0a84ff15',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#0a84ff44',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+    width: '100%',
+    gap: 4,
+  },
+  lessonBadgeTitle: { fontSize: 16, fontWeight: '800', color: '#0a84ff' },
+  lessonBadgeName: { fontSize: 14, color: '#333', textAlign: 'center' },
+  lessonBadgeReward: { fontSize: 13, fontWeight: '700', color: '#555', marginTop: 2 },
 
   closeButton: {
     backgroundColor: '#007bff', paddingVertical: 10,

@@ -17,8 +17,7 @@ function AppShell() {
   const { isLoading, isProfileComplete } = useProfile();
 
   useEffect(() => {
-    // Preload sprite sheet into expo-image's memory cache on app start,
-    // so onboarding/profile show it instantly without any decode delay.
+    // Preload sprite sheet into expo-image's memory cache on app start
     ExpoImage.prefetch(GUYS_URI);
   }, []);
 
