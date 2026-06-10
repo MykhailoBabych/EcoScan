@@ -1,3 +1,4 @@
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { useRouter } from "expo-router";
@@ -13,7 +14,15 @@ import {
   View,
 } from "react-native";
 
-export default function SettingsScreen() {
+export function SettingsScreen() {
+  return (
+    <SignInPrompt>
+      <SettingsScreenContent />
+    </SignInPrompt>
+  );
+}
+
+export function SettingsScreenContent() {
   const [view, setView] = useState("main");
   const { resetProfile } = useProfile();
   const theme = useTheme();

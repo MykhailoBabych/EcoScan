@@ -1,3 +1,4 @@
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
@@ -33,7 +34,15 @@ const LEADERBOARD = [
   { rank: 10, name: "GreenThumb", score: 450 },
 ];
 
-export default function ActivityScreen() {
+export function ActivityScreen() {
+  return (
+    <SignInPrompt>
+      <ActivityScreenContent />
+    </SignInPrompt>
+  );
+}
+
+export function ActivityScreenContent() {
   const [view, setView] = useState<"main" | "leaderboard" | "achievements">(
     "main",
   );
@@ -43,15 +52,15 @@ export default function ActivityScreen() {
   const ACHIEVEMENTS: Achievement[] = [
     {
       id: "1",
-      title: "Мой первый скан",
-      description: "Отсканируйте объект в первый раз",
+      title: "First Scan",
+      description: "Scan an object for the first time",
       completed: scansCount >= 1,
       icon: "qrcode.viewfinder",
     },
     {
       id: "2",
-      title: "Бывалый эколог",
-      description: "Отсканировать 10 объектов",
+      title: "Seasoned Ecologist",
+      description: "Scan 10 objects",
       completed: scansCount >= 10,
       icon: "leaf.fill",
     },

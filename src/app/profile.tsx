@@ -14,7 +14,7 @@ const FULL_IMAGE_HEIGHT = DISPLAY_HEIGHT * 3;
 
 const CIRCLE_SIZE = DISPLAY_WIDTH;
 
-export default function ProfileScreen() {
+export function ProfileScreen() {
   const { 
     step, setStep, 
     characterIndex, setCharacterIndex, 

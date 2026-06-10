@@ -10,6 +10,7 @@ import {
     View,
 } from "react-native";
 
+import { SignInPrompt } from "@/components/sign-in-prompt";
 import { useProfile } from "@/contexts/ProfileContext";
 
 const GOOGLE_VISION_API_KEY = "YOUR_API_KEY"; // Replace logic below
@@ -113,7 +114,15 @@ const getEcoAdvice = (labels: any[]) => {
   };
 };
 
-export default function ScannerScreen() {
+export function ScannerScreen() {
+  return (
+    <SignInPrompt>
+      <ScannerScreenContent />
+    </SignInPrompt>
+  );
+}
+
+export function ScannerScreenContent() {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<"back" | "front">("back");
   const [zoom, setZoom] = useState(0);

@@ -1,4 +1,5 @@
-﻿import * as Location from "expo-location";
+﻿import { SignInPrompt } from "@/components/sign-in-prompt";
+import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -105,7 +106,15 @@ const getPlaceDescription = (tags: Record<string, string>, type: PlaceType) => {
 };
 
 // Main screen component that displays the map and nearby recycling points
-export default function MapScreen() {
+export function MapScreen() {
+  return (
+    <SignInPrompt>
+      <MapScreenContent />
+    </SignInPrompt>
+  );
+}
+
+export function MapScreenContent() {
   const [region, setRegion] = useState<Region | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [places, setPlaces] = useState<Place[]>([]);
