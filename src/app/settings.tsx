@@ -1,35 +1,46 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
-import { useState } from 'react';
-import { SymbolView } from 'expo-symbols';
-import { useProfile } from '@/contexts/ProfileContext';
-import { useTheme } from '@/hooks/use-theme';
+import { useProfile } from "@/contexts/ProfileContext";
+import { useTheme } from "@/hooks/use-theme";
+import { SymbolView } from "expo-symbols";
+import { useState } from "react";
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function SettingsScreen() {
-  const [view, setView] = useState('main'); 
+  const [view, setView] = useState("main");
   const { resetProfile } = useProfile();
   const theme = useTheme();
 
   const handleResetProfile = () => {
     Alert.alert(
-      'Reset Profile',
-      'Are you sure you want to delete your account? This action cannot be undone.',
+      "Reset Profile",
+      "Are you sure you want to delete your account? This action cannot be undone.",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive', 
-          onPress: () => {
-            resetProfile();
-            Alert.alert('Success', 'Profile has been reset.');
-          } 
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await resetProfile();
+            Alert.alert("Success", "Profile has been reset.");
+          },
         },
-      ]
+      ],
     );
   };
 
   const renderHeader = (title: string, backView: string, backLabel: string) => (
     <View style={styles.header}>
-      <TouchableOpacity style={styles.backButton} onPress={() => setView(backView)}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => setView(backView)}
+      >
         <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
         <Text style={styles.headerBackText}>{backLabel}</Text>
       </TouchableOpacity>
@@ -38,14 +49,22 @@ export default function SettingsScreen() {
     </View>
   );
 
-  if (view === 'creators') {
+  if (view === "creators") {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {renderHeader('Creators', 'about', 'About Us')}
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
+        {renderHeader("Creators", "about", "About Us")}
         <ScrollView style={styles.scrollView}>
-          <View style={[styles.textContainer, { backgroundColor: theme.backgroundElement }]}>
+          <View
+            style={[
+              styles.textContainer,
+              { backgroundColor: theme.backgroundElement },
+            ]}
+          >
             <Text style={[styles.bodyText, { color: theme.text }]}>
-              Creators: Mykhailo Babych, Anton Opria, Mark Shatalov, Nazar Kyrychenko.
+              Creators: Mykhailo Babych, Anton Opria, Mark Shatalov, Nazar
+              Kyrychenko.
             </Text>
           </View>
         </ScrollView>
@@ -53,14 +72,23 @@ export default function SettingsScreen() {
     );
   }
 
-  if (view === 'purpose') {
+  if (view === "purpose") {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {renderHeader('App Purpose', 'about', 'About Us')}
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
+        {renderHeader("App Purpose", "about", "About Us")}
         <ScrollView style={styles.scrollView}>
-          <View style={[styles.textContainer, { backgroundColor: theme.backgroundElement }]}>
+          <View
+            style={[
+              styles.textContainer,
+              { backgroundColor: theme.backgroundElement },
+            ]}
+          >
             <Text style={[styles.bodyText, { color: theme.text }]}>
-              EcoScan's goal — help people make the right environmental decisions in everyday life: scan an object → get advice to recycle or reuse it, with nearby collection points shown on the map.
+              EcoScan's goal — help people make the right environmental
+              decisions in everyday life: scan an object → get advice to recycle
+              or reuse it, with nearby collection points shown on the map.
             </Text>
           </View>
         </ScrollView>
@@ -68,19 +96,36 @@ export default function SettingsScreen() {
     );
   }
 
-  if (view === 'about') {
+  if (view === "about") {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        {renderHeader('About Us', 'main', 'Settings')}
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.background }]}
+      >
+        {renderHeader("About Us", "main", "Settings")}
         <ScrollView style={styles.scrollView}>
-          <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-            <TouchableOpacity style={styles.row} onPress={() => setView('creators')}>
-              <Text style={[styles.rowText, { color: theme.text }]}>Creators</Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: theme.backgroundElement },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => setView("creators")}
+            >
+              <Text style={[styles.rowText, { color: theme.text }]}>
+                Creators
+              </Text>
               <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
             </TouchableOpacity>
             <View style={styles.separator} />
-            <TouchableOpacity style={styles.row} onPress={() => setView('purpose')}>
-              <Text style={[styles.rowText, { color: theme.text }]}>App Purpose</Text>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => setView("purpose")}
+            >
+              <Text style={[styles.rowText, { color: theme.text }]}>
+                App Purpose
+              </Text>
               <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
             </TouchableOpacity>
           </View>
@@ -90,30 +135,52 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.background }]}
+    >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { marginLeft: 16, color: theme.text }]}>Settings</Text>
+        <Text
+          style={[styles.headerTitle, { marginLeft: 16, color: theme.text }]}
+        >
+          Settings
+        </Text>
       </View>
       <ScrollView style={styles.scrollView}>
-        <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-          <TouchableOpacity style={styles.row} onPress={() => setView('about')}>
+        <View
+          style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+        >
+          <TouchableOpacity style={styles.row} onPress={() => setView("about")}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#0a84ff' }]}>
-                <SymbolView name="info.circle.fill" size={20} tintColor="#fff" />
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#0a84ff" }]}
+              >
+                <SymbolView
+                  name="info.circle.fill"
+                  size={20}
+                  tintColor="#fff"
+                />
               </View>
-              <Text style={[styles.rowText, { color: theme.text }]}>About Us</Text>
+              <Text style={[styles.rowText, { color: theme.text }]}>
+                About Us
+              </Text>
             </View>
             <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+        <View
+          style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+        >
           <TouchableOpacity style={styles.row} onPress={handleResetProfile}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#ff453a' }]}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#ff453a" }]}
+              >
                 <SymbolView name="trash.fill" size={20} tintColor="#fff" />
               </View>
-              <Text style={[styles.rowText, { color: theme.text }]}>Delete Account</Text>
+              <Text style={[styles.rowText, { color: theme.text }]}>
+                Delete Account
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -131,23 +198,23 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingVertical: 12,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   headerBackText: {
-    color: '#0a84ff',
+    color: "#0a84ff",
     fontSize: 17,
     marginLeft: 4,
   },
@@ -157,25 +224,25 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 10,
     marginBottom: 24,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconContainer: {
     width: 30,
     height: 30,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   rowText: {
@@ -183,7 +250,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#38383a',
+    backgroundColor: "#38383a",
     marginLeft: 16,
   },
   textContainer: {

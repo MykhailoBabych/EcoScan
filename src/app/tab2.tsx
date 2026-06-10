@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
 export default function Tab2Screen() {
   return (
-    <View style={[styles.container, { backgroundColor: '#007AFF' }]}>
+    <View style={[styles.container, { backgroundColor: "#007AFF" }]}>
       <Text style={styles.text}>Blue Tab</Text>
     </View>
   );
@@ -11,12 +11,12 @@ export default function Tab2Screen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   text: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
 });
