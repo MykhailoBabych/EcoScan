@@ -18,7 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SvgXml } from "react-native-svg";
 
-const SEARCH_RADIUS_METERS = 25_000;
+const SEARCH_RADIUS_METERS = 10_000;
 
 type PlaceType = "recycling" | "store" | "vending";
 

@@ -2,7 +2,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 
-const GOOGLE_VISION_API_KEY = 'YOUR_API_KEY'; // Replace logic below
+const GOOGLE_VISION_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_VISION_API_KEY;
 
 const RECYCLING_CATEGORIES = [
   {
@@ -125,9 +125,14 @@ export default function ScannerScreen() {
   };
 
   const analyzeImage = async (base64: string) => {
+    if (!GOOGLE_VISION_API_KEY) {
+      Alert.alert("Missing API key", "Add EXPO_PUBLIC_GOOGLE_VISION_API_KEY to your .env file.");
+      return null;
+    }
+
     try {
       const response = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=AIzaSyArhmioiHCIqN9WsEx_3wyCpyc-ykDto6Q`,
+        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
         {
           method: "POST",
           headers: {
