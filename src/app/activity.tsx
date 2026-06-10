@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 
-// Структура для ачивок, чтобы легко было добавлять новые
+// achievment object
 export type Achievement = {
   id: string;
   title: string;
@@ -20,6 +20,7 @@ export type Achievement = {
   icon: SymbolViewProps["name"];
 };
 
+// for testing purpose
 const LEADERBOARD = [
   { rank: 1, name: "EcoWarrior99", score: 1250 },
   { rank: 2, name: "GreenEarth", score: 1100 },
@@ -43,15 +44,15 @@ export default function ActivityScreen() {
   const ACHIEVEMENTS: Achievement[] = [
     {
       id: "1",
-      title: "Мой первый скан",
-      description: "Отсканируйте объект в первый раз",
+      title: "My first scan!",
+      description: "Scan an object for the first time",
       completed: scansCount >= 1,
       icon: "qrcode.viewfinder",
     },
     {
       id: "2",
-      title: "Бывалый эколог",
-      description: "Отсканировать 10 объектов",
+      title: "Experienced Environmentalist",
+      description: "Scan 10 objects",
       completed: scansCount >= 10,
       icon: "leaf.fill",
     },

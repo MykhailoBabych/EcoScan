@@ -1,4 +1,6 @@
-﻿import * as Location from "expo-location";
+﻿import BottleIcon from "@/assets/images/bottle.svg";
+import RecycleIcon from "@/assets/images/recycle.svg";
+import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,9 +18,9 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SvgXml } from "react-native-svg";
 
-const SEARCH_RADIUS_METERS = 25_000;
+// Search radius for nearby places in meters (curenntly 10km)
+const SEARCH_RADIUS_METERS = 10_000;
 
 type PlaceType = "recycling" | "store" | "vending";
 
@@ -29,15 +31,6 @@ const PLACE_TYPE_OPTIONS: Array<{ type: PlaceType; label: string }> = [
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-// SVGs taken from https://phosphoricons.com/ and modified to fit the app style
-const BOTTLE_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M245.66,42.34l-32-32a8,8,0,0,0-11.32,11.32l1.48,1.47L148.65,64.51l-38.22,7.65a8.05,8.05,0,0,0-4.09,2.18L23,157.66a24,24,0,0,0,0,33.94L64.4,233a24,24,0,0,0,33.94,0l83.32-83.31a8,8,0,0,0,2.18-4.09l7.65-38.22,41.38-55.17,1.47,1.48a8,8,0,0,0,11.32-11.32ZM96,107.31,148.69,160,104,204.69,51.31,152ZM81.37,224a7.94,7.94,0,0,1-5.65-2.34L34.34,180.28a8,8,0,0,1,0-11.31L40,163.31,92.69,216,87,221.66A8,8,0,0,1,81.37,224ZM177.6,99.2a7.92,7.92,0,0,0-1.44,3.23l-7.53,37.63L160,148.69,107.31,96l8.63-8.63,37.63-7.53a7.92,7.92,0,0,0,3.23-1.44l58.45-43.84,6.19,6.19Z"></path></svg>
-`;
-
-const RECYCLE_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M96,208a8,8,0,0,1-8,8H40a24,24,0,0,1-20.77-36l34.29-59.25L39.47,124.5A8,8,0,1,1,35.33,109l32.77-8.77a8,8,0,0,1,9.8,5.66l8.79,32.77A8,8,0,0,1,81,148.5a8.37,8.37,0,0,1-2.08.27,8,8,0,0,1-7.72-5.93l-3.8-14.15L33.11,188A8,8,0,0,0,40,200H88A8,8,0,0,1,96,208Zm140.73-28-23.14-40a8,8,0,0,0-13.84,8l23.14,40A8,8,0,0,1,216,200H147.31l10.34-10.34a8,8,0,0,0-11.31-11.32l-24,24a8,8,0,0,0,0,11.32l24,24a8,8,0,0,0,11.31-11.32L147.31,216H216a24,24,0,0,0,20.77-36ZM128,32a7.85,7.85,0,0,1,6.92,4l34.29,59.25-14.08-3.78A8,8,0,0,0,151,106.92l32.78,8.79a8.23,8.23,0,0,0,2.07.27,8,8,0,0,0,7.72-5.93l8.79-32.79a8,8,0,1,0-15.45-4.14l-3.8,14.17L148.77,28a24,24,0,0,0-41.54,0L84.07,68a8,8,0,0,0,13.85,8l23.16-40A7.85,7.85,0,0,1,128,32Z"></path></svg>
-`;
 
 type Place = {
   id: string;
@@ -72,8 +65,8 @@ const getMarkerColor = (type: PlaceType) => {
 };
 
 const getMarkerSvg = (type: PlaceType) => {
-  if (type === "recycling") return RECYCLE_SVG;
-  return BOTTLE_SVG;
+  if (type === "recycling") return <RecycleIcon width={18} height={18} />;
+  return <BottleIcon width={18} height={18} />;
 };
 
 const getPlaceTitle = (tags: Record<string, string>, type: PlaceType) => {
@@ -378,7 +371,7 @@ export default function MapScreen() {
                   style={styles.returnMarkerIcon}
                 />
               ) : (
-                <SvgXml xml={getMarkerSvg(place.type)} width={16} height={16} />
+                getMarkerSvg(place.type)
               )}
             </View>
           </Marker>
@@ -462,7 +455,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    bottom: 24,
+    bottom: 96,
     left: 16,
     right: 16,
     borderRadius: 12,
