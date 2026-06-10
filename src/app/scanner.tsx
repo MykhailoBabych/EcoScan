@@ -159,6 +159,8 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
 
 type ScanResult = EcoAdvice & {
   pointsEarned: number;
+  awarded: boolean;
+  reason: string;
   upcyclingIdeas: UpcyclingIdea[];
   upcyclingLoading: boolean;
 };
@@ -215,8 +217,8 @@ export default function ScannerScreen() {
 
       const advice = getEcoAdvice(labels);
 
-      // Record scan & award points
-      const { pointsEarned } = await recordScan({
+      // Record scan & award points (may be 0 for unknown/duplicate)
+      const { pointsEarned, awarded, reason } = await recordScan({
         objectLabel: advice.label,
         category: advice.category,
         recyclingAdvice: advice.advice,
@@ -227,6 +229,8 @@ export default function ScannerScreen() {
       setResult({
         ...advice,
         pointsEarned,
+        awarded,
+        reason,
         upcyclingIdeas: [],
         upcyclingLoading: true,
       });
@@ -332,10 +336,22 @@ export default function ScannerScreen() {
         <View style={styles.resultContainer}>
           <Text style={styles.resultTitle}>{result.label}</Text>
 
-          {result.pointsEarned !== undefined && (
+          {result.awarded ? (
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
                 +{result.pointsEarned} Eco Points 🌿
+              </Text>
+            </View>
+          ) : result.reason === "duplicate" ? (
+            <View style={styles.infoBadge}>
+              <Text style={styles.infoBadgeText}>
+                Already scanned — no points 🔁
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.infoBadge}>
+              <Text style={styles.infoBadgeText}>
+                Not recognized — no points ❓
               </Text>
             </View>
           )}
@@ -498,6 +514,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pointsBadgeText: { color: "#1a7f3c", fontWeight: "700", fontSize: 15 },
+
+  infoBadge: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  infoBadgeText: { color: "#666", fontWeight: "600", fontSize: 14 },
 
   tabRow: {
     flexDirection: "row",

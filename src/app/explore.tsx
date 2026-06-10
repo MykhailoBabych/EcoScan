@@ -1,199 +1,282 @@
-import { Image } from "expo-image";
-import { SymbolView } from "expo-symbols";
-import { Platform, Pressable, ScrollView, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { ExternalLink } from "@/components/external-link";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Collapsible } from "@/components/ui/collapsible";
-import { WebBadge } from "@/components/web-badge";
-import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
+import {
+  ECO_FACTS,
+  RECYCLING_GUIDES,
+  RecyclingGuide,
+  UPCYCLING_TIPS,
+} from "@/data/eco-content";
 import { useTheme } from "@/hooks/use-theme";
+import { useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
+type Section = "facts" | "guide" | "upcycle";
+
+export default function ExploreScreen() {
   const theme = useTheme();
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  const [section, setSection] = useState<Section>("facts");
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.background }]}
+      edges={["top"]}
     >
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{"\n"}code to help you get started.
-          </ThemedText>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.text }]}>Learn</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Eco facts, recycling guides & upcycling ideas
+        </Text>
+      </View>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{
-                    ios: "arrow.up.right.square",
-                    android: "link",
-                    web: "link",
-                  }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+      {/* Section switcher */}
+      <View
+        style={[styles.switcher, { backgroundColor: theme.backgroundElement }]}
+      >
+        <SwitchTab
+          label="🌍 Facts"
+          active={section === "facts"}
+          onPress={() => setSection("facts")}
+          theme={theme}
+        />
+        <SwitchTab
+          label="📋 Guide"
+          active={section === "guide"}
+          onPress={() => setSection("guide")}
+          theme={theme}
+        />
+        <SwitchTab
+          label="✨ Upcycle"
+          active={section === "upcycle"}
+          onPress={() => setSection("upcycle")}
+          theme={theme}
+        />
+      </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens:{" "}
-              <ThemedText type="code">src/app/index.tsx</ThemedText> and{" "}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in{" "}
-              <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView
-              type="backgroundElement"
-              style={styles.collapsibleContent}
-            >
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open
-                the web version, press{" "}
-                <ThemedText type="smallBold">w</ThemedText> in the terminal
-                running this project.
-              </ThemedText>
-              <Image
-                source={require("@/assets/images/tutorial-web.png")}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the{" "}
-              <ThemedText type="code">@2x</ThemedText> and{" "}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files
-              for different screen densities.
-            </ThemedText>
-            <Image
-              source={require("@/assets/images/react-logo.png")}
-              style={styles.imageReact}
-            />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{" "}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets
-              you inspect what the user&apos;s current color scheme is, and so
-              you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{" "}
-              <ThemedText type="code">
-                src/components/ui/collapsible.tsx
-              </ThemedText>{" "}
-              component uses the powerful{" "}
-              <ThemedText type="code">react-native-reanimated</ThemedText>{" "}
-              library to animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === "web" && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {section === "facts" && <FactsSection theme={theme} />}
+        {section === "guide" && <GuideSection theme={theme} />}
+        {section === "upcycle" && <UpcycleSection theme={theme} />}
+        <View style={{ height: 32 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+// ─── Section switcher tab ───────────────────────────────────────────────────────
+
+function SwitchTab({ label, active, onPress, theme }: any) {
+  return (
+    <TouchableOpacity
+      style={[styles.switchTab, active && { backgroundColor: "#28a745" }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Text
+        style={[
+          styles.switchTabText,
+          { color: active ? "#fff" : theme.textSecondary },
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Facts ──────────────────────────────────────────────────────────────────────
+
+function FactsSection({ theme }: any) {
+  return (
+    <View style={{ gap: 12 }}>
+      {ECO_FACTS.map((fact) => (
+        <View
+          key={fact.id}
+          style={[
+            styles.factCard,
+            { backgroundColor: theme.backgroundElement },
+          ]}
+        >
+          <Text style={styles.factEmoji}>{fact.emoji}</Text>
+          <Text style={[styles.factText, { color: theme.text }]}>
+            {fact.text}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Recycling guide ──────────────────────────────────────────────────────────
+
+function GuideSection({ theme }: any) {
+  const [open, setOpen] = useState<string | null>(RECYCLING_GUIDES[0].id);
+
+  return (
+    <View style={{ gap: 12 }}>
+      {RECYCLING_GUIDES.map((guide: RecyclingGuide) => {
+        const isOpen = open === guide.id;
+        return (
+          <View
+            key={guide.id}
+            style={[
+              styles.guideCard,
+              { backgroundColor: theme.backgroundElement },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.guideHeader}
+              onPress={() => setOpen(isOpen ? null : guide.id)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.guideIcon,
+                  { backgroundColor: guide.color + "22" },
+                ]}
+              >
+                <Text style={{ fontSize: 22 }}>{guide.emoji}</Text>
+              </View>
+              <Text style={[styles.guideTitle, { color: theme.text }]}>
+                {guide.title}
+              </Text>
+              <Text
+                style={[styles.guideChevron, { color: theme.textSecondary }]}
+              >
+                {isOpen ? "−" : "+"}
+              </Text>
+            </TouchableOpacity>
+
+            {isOpen && (
+              <View style={styles.guideRules}>
+                {guide.rules.map((rule, i) => (
+                  <View key={i} style={styles.ruleRow}>
+                    <View
+                      style={[styles.ruleDot, { backgroundColor: guide.color }]}
+                    />
+                    <Text
+                      style={[styles.ruleText, { color: theme.textSecondary }]}
+                    >
+                      {rule}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── Upcycling tips ─────────────────────────────────────────────────────────────
+
+function UpcycleSection({ theme }: any) {
+  return (
+    <View style={{ gap: 12 }}>
+      {UPCYCLING_TIPS.map((tip) => (
+        <View
+          key={tip.id}
+          style={[styles.tipCard, { backgroundColor: theme.backgroundElement }]}
+        >
+          <Text style={styles.tipEmoji}>{tip.emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tipItem, { color: theme.text }]}>
+              {tip.item}
+            </Text>
+            <Text style={[styles.tipIdea, { color: theme.textSecondary }]}>
+              {tip.idea}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
+  safe: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  title: { fontSize: 32, fontWeight: "800" },
+  subtitle: { fontSize: 14, marginTop: 2 },
+
+  switcher: {
     flexDirection: "row",
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+    marginBottom: 8,
+  },
+  switchTab: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: "center",
+  },
+  switchTabText: { fontSize: 13, fontWeight: "600" },
+
+  scroll: { paddingHorizontal: 16, paddingTop: 8 },
+
+  // Facts
+  factCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderRadius: 16,
+    padding: 16,
+  },
+  factEmoji: { fontSize: 28 },
+  factText: { flex: 1, fontSize: 15, lineHeight: 21 },
+
+  // Guide
+  guideCard: { borderRadius: 16, overflow: "hidden" },
+  guideHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+  },
+  guideIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
     justifyContent: "center",
   },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: "center",
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
+  guideTitle: { flex: 1, fontSize: 17, fontWeight: "700" },
+  guideChevron: {
+    fontSize: 22,
+    fontWeight: "400",
+    width: 24,
     textAlign: "center",
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
+  guideRules: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
+  ruleRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  ruleDot: { width: 6, height: 6, borderRadius: 3, marginTop: 7 },
+  ruleText: { flex: 1, fontSize: 14, lineHeight: 20 },
+
+  // Upcycle tips
+  tipCard: {
     flexDirection: "row",
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: "center",
-    gap: Spacing.one,
     alignItems: "center",
+    gap: 14,
+    borderRadius: 16,
+    padding: 16,
   },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: "center",
-  },
-  imageTutorial: {
-    width: "100%",
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
-  },
+  tipEmoji: { fontSize: 28 },
+  tipItem: { fontSize: 16, fontWeight: "700" },
+  tipIdea: { fontSize: 14, marginTop: 2, lineHeight: 19 },
 });

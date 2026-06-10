@@ -33,7 +33,7 @@ type ProfileContextType = {
   completeOnboarding: (name: string, characterIndex: number) => Promise<void>;
   recordScan: (
     scan: Omit<ScanRecord, "id" | "timestamp">,
-  ) => Promise<{ pointsEarned: number }>;
+  ) => Promise<{ pointsEarned: number; awarded: boolean; reason: string }>;
   resetProfile: () => Promise<void>;
 };
 
@@ -77,30 +77,52 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     async (scan: Omit<ScanRecord, "id" | "timestamp">) => {
       const prev = profileRef.current;
       const today = new Date().toISOString().slice(0, 10);
-      const newStreak = prev.lastScanDate === today ? prev.scanStreak + 1 : 1;
-      const pointsEarned = calcPointsForScan(
+
+      const result = calcPointsForScan(
         scan.category,
+        scan.objectLabel,
         prev.categoryStats,
-        newStreak,
+        // Streak only advances when points are actually awarded; compute below
+        prev.lastScanDate === today ? prev.scanStreak + 1 : 1,
+        prev.lastScanLabel,
       );
+
+      // Streak only counts valid (awarded) scans on the same day
+      const newStreak = result.awarded
+        ? prev.lastScanDate === today
+          ? prev.scanStreak + 1
+          : 1
+        : prev.scanStreak;
+
       const record: ScanRecord = {
         ...scan,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         timestamp: Date.now(),
       };
+
       await updateProfile((p) => ({
         ...p,
-        ecoPoints: p.ecoPoints + pointsEarned,
+        ecoPoints: p.ecoPoints + result.points,
+        // totalScans counts every scan attempt that was recorded
         totalScans: p.totalScans + 1,
         scanStreak: newStreak,
         lastScanDate: today,
-        categoryStats: {
-          ...p.categoryStats,
-          [scan.category]: p.categoryStats[scan.category] + 1,
-        },
+        lastScanLabel: scan.objectLabel,
+        // Only count category stats for awarded scans
+        categoryStats: result.awarded
+          ? {
+              ...p.categoryStats,
+              [scan.category]: p.categoryStats[scan.category] + 1,
+            }
+          : p.categoryStats,
         scanHistory: [record, ...p.scanHistory].slice(0, 100),
       }));
-      return { pointsEarned };
+
+      return {
+        pointsEarned: result.points,
+        awarded: result.awarded,
+        reason: result.reason,
+      };
     },
     [updateProfile],
   );
