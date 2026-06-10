@@ -10,9 +10,12 @@ import { Collapsible } from "@/components/ui/collapsible";
 import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useRouter } from "expo-router";
+import { Text, TouchableOpacity } from "react-native";
 
 export default function TabTwoScreen() {
   const safeAreaInsets = useSafeAreaInsets();
+  const router = useRouter();
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
@@ -39,6 +42,21 @@ export default function TabTwoScreen() {
       contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
     >
       <ThemedView style={styles.container}>
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginHorizontal: Spacing.four,
+            marginTop: Spacing.four,
+          }}
+          onPress={() => router.back()}
+        >
+          <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
+          <Text style={{ color: "#0a84ff", fontSize: 17, marginLeft: 4 }}>
+            Settings
+          </Text>
+        </TouchableOpacity>
+
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="subtitle">Explore</ThemedText>
           <ThemedText style={styles.centerText} themeColor="textSecondary">
