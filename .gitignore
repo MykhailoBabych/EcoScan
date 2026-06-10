@@ -24,8 +24,8 @@
 !/tsconfig.json
 
 # Always ignore sensitive/env/private files even if added in allowed folders
-**/.env
-**/.env.*
+#**/.env
+#**/.env.*
 **/*.pem
 **/*.key
 **/*.p8
