@@ -11,6 +11,8 @@ import {
   WasteCategory,
   ScanRecord,
   UserProfile,
+  UseType,
+  SchoolRole,
   ProfileService,
   calcPointsForScan,
   emptyProfile,
@@ -31,7 +33,14 @@ type ProfileContextType = {
   categoryStats: UserProfile['categoryStats'];
   level: ReturnType<typeof getLevelForPoints>;
   levelProgress: number;
-  completeOnboarding: (name: string, characterIndex: number) => Promise<void>;
+  useType: UseType | null;
+  schoolRole: SchoolRole | null;
+  completeOnboarding: (
+    name: string,
+    characterIndex: number,
+    useType: UseType,
+    schoolRole: SchoolRole | null,
+  ) => Promise<void>;
   recordScan: (
     scan: Omit<ScanRecord, 'id' | 'timestamp'>
   ) => Promise<{ pointsEarned: number }>;
@@ -68,8 +77,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOnboarding = useCallback(
-    async (name: string, characterIndex: number) => {
-      await updateProfile((prev) => ({ ...prev, name, characterIndex }));
+    async (
+      name: string,
+      characterIndex: number,
+      useType: UseType,
+      schoolRole: SchoolRole | null,
+    ) => {
+      await updateProfile((prev) => ({ ...prev, name, characterIndex, useType, schoolRole }));
     },
     [updateProfile]
   );
@@ -128,6 +142,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         totalScans: profile.totalScans,
         scanHistory: profile.scanHistory,
         categoryStats: profile.categoryStats,
+        useType: profile.useType,
+        schoolRole: profile.schoolRole,
         level,
         levelProgress,
         completeOnboarding,

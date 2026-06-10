@@ -43,7 +43,7 @@ export function Avatar({
       ]}
     >
       <Image
-        source={require('@/assets/images/guys.png')}
+        source={require('../../assets/images/guys.png')}
         style={{
           position: 'absolute',
           width: spriteW,

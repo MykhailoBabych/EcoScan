@@ -23,6 +23,9 @@ export type ScanRecord = {
 
 export type CategoryStats = Record<WasteCategory, number>;
 
+export type UseType = 'personal' | 'school';
+export type SchoolRole = 'teacher' | 'student';
+
 export type UserProfile = {
   name: string;
   characterIndex: number;
@@ -32,6 +35,8 @@ export type UserProfile = {
   lastScanDate: string | null; // ISO date string YYYY-MM-DD
   categoryStats: CategoryStats;
   scanHistory: ScanRecord[];
+  useType: UseType | null;
+  schoolRole: SchoolRole | null;
 };
 
 // ─── Level System ─────────────────────────────────────────────────────────────
@@ -99,6 +104,8 @@ export function emptyProfile(): UserProfile {
       electronics: 0, unknown: 0,
     },
     scanHistory: [],
+    useType: null,
+    schoolRole: null,
   };
 }
 

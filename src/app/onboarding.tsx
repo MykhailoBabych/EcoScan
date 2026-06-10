@@ -1,5 +1,4 @@
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -9,9 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { useProfile } from '@/contexts/ProfileContext';
+import { UseType, SchoolRole } from '@/services/profile';
 
 // ─── Sprite constants (same as profile.tsx) ───────────────────────────────────
 
@@ -24,7 +25,7 @@ const FULL_IMAGE_WIDTH = DISPLAY_WIDTH * 3;
 const FULL_IMAGE_HEIGHT = DISPLAY_HEIGHT * 3;
 const CIRCLE_SIZE = DISPLAY_WIDTH;
 
-type Step = 'welcome' | 'selecting' | 'naming';
+type Step = 'welcome' | 'selecting' | 'naming' | 'usetype' | 'schoolrole';
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useProfile();
@@ -41,10 +42,10 @@ export default function OnboardingScreen() {
   const handleNext = () => setCharacterIndex((i) => (i + 1) % 9);
   const handlePrev = () => setCharacterIndex((i) => (i - 1 + 9) % 9);
 
-  const handleFinish = async () => {
+  const handleFinish = async (selectedUseType: UseType, schoolRole: SchoolRole | null = null) => {
     if (!name.trim()) return;
     setSaving(true);
-    await completeOnboarding(name.trim(), characterIndex);
+    await completeOnboarding(name.trim(), characterIndex, selectedUseType, schoolRole);
     // _layout will react to isProfileComplete and unmount this screen
   };
 
@@ -94,8 +95,9 @@ export default function OnboardingScreen() {
 
             <View style={styles.spriteContainer}>
               <Image
-                source={require('@/assets/images/guys.png')}
-                style={[styles.spriteImage, { left: translateX, top: translateY }]}
+                source={require('../../assets/images/guys.png')}
+                style={[styles.spriteImage, { transform: [{ translateX }, { translateY }] }]}
+                transition={0}
               />
             </View>
 
@@ -120,56 +122,146 @@ export default function OnboardingScreen() {
   }
 
   // ── Name step ────────────────────────────────────────────────────────────────
-  return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.center}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Selected avatar preview */}
-        <View style={[styles.spriteContainer, styles.nameStepAvatar]}>
-          <Image
-            source={require('@/assets/images/guys.png')}
-            style={[styles.spriteImage, { left: translateX, top: translateY }]}
-          />
-        </View>
-
-        <Text style={styles.stepTitle}>What's your name?</Text>
-        <Text style={styles.stepSubtitle}>
-          You'll earn Eco Points for every scan
-        </Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          placeholderTextColor="#8e8e93"
-          value={name}
-          onChangeText={setName}
-          autoFocus
-          maxLength={24}
-          returnKeyType="done"
-          onSubmitEditing={handleFinish}
-        />
-
-        <TouchableOpacity
-          style={[styles.primaryBtn, (!name.trim() || saving) && styles.disabledBtn]}
-          disabled={!name.trim() || saving}
-          onPress={handleFinish}
+  if (step === 'naming') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <KeyboardAvoidingView
+          style={styles.center}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Text style={styles.primaryBtnText}>
-            {saving ? 'Saving…' : 'Start Scanning 🌿'}
+          {/* Selected avatar preview */}
+          <View style={[styles.spriteContainer, styles.nameStepAvatar]}>
+            <Image
+              source={require('../../assets/images/guys.png')}
+              style={[styles.spriteImage, { transform: [{ translateX }, { translateY }] }]}
+                transition={0}
+            />
+          </View>
+
+          <Text style={styles.stepTitle}>What's your name?</Text>
+          <Text style={styles.stepSubtitle}>
+            You'll earn Eco Points for every scan
           </Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.backLink}
-          onPress={() => setStep('selecting')}
-        >
-          <Text style={styles.backLinkText}>← Back</Text>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            placeholderTextColor="#8e8e93"
+            value={name}
+            onChangeText={setName}
+            autoFocus
+            maxLength={24}
+            returnKeyType="done"
+            onSubmitEditing={() => name.trim() && setStep('usetype')}
+          />
+
+          <TouchableOpacity
+            style={[styles.primaryBtn, !name.trim() && styles.disabledBtn]}
+            disabled={!name.trim()}
+            onPress={() => setStep('usetype')}
+          >
+            <Text style={styles.primaryBtnText}>Continue</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => setStep('selecting')}
+          >
+            <Text style={styles.backLinkText}>← Back</Text>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Use type step ─────────────────────────────────────────────────────────────
+  if (step === 'usetype') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.logo}>🏫</Text>
+          <Text style={styles.stepTitle}>How will you use EcoScan?</Text>
+          <Text style={styles.stepSubtitle}>
+            Choose how you'll be using the app
+          </Text>
+
+          <View style={styles.roleButtonGroup}>
+            <TouchableOpacity
+              style={styles.roleBtn}
+              onPress={() => handleFinish('personal', null)}
+              disabled={saving}
+            >
+              <Text style={styles.roleBtnIcon}>🌱</Text>
+              <Text style={styles.roleBtnTitle}>Personal Use</Text>
+              <Text style={styles.roleBtnSub}>Track your own eco-impact</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.roleBtn}
+              onPress={() => setStep('schoolrole')}
+            >
+              <Text style={styles.roleBtnIcon}>🎓</Text>
+              <Text style={styles.roleBtnTitle}>School Use</Text>
+              <Text style={styles.roleBtnSub}>For teachers &amp; students</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => setStep('naming')}
+          >
+            <Text style={styles.backLinkText}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── School role step ──────────────────────────────────────────────────────────
+  if (step === 'schoolrole') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.logo}>🎓</Text>
+          <Text style={styles.stepTitle}>What's your role?</Text>
+          <Text style={styles.stepSubtitle}>
+            This helps us tailor the experience for you
+          </Text>
+
+          <View style={styles.roleButtonGroup}>
+            <TouchableOpacity
+              style={styles.roleBtn}
+              onPress={() => handleFinish('school', 'teacher')}
+              disabled={saving}
+            >
+              <Text style={styles.roleBtnIcon}>🧑‍🏫</Text>
+              <Text style={styles.roleBtnTitle}>Teacher</Text>
+              <Text style={styles.roleBtnSub}>I guide students in class</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.roleBtn}
+              onPress={() => handleFinish('school', 'student')}
+              disabled={saving}
+            >
+              <Text style={styles.roleBtnIcon}>📚</Text>
+              <Text style={styles.roleBtnTitle}>Student</Text>
+              <Text style={styles.roleBtnSub}>I'm learning about eco-care</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => setStep('usetype')}
+          >
+            <Text style={styles.backLinkText}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return null;
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -309,5 +401,34 @@ const styles = StyleSheet.create({
   backLinkText: {
     color: '#8e8e93',
     fontSize: 15,
+  },
+  roleButtonGroup: {
+    width: '100%',
+    gap: 14,
+    marginBottom: 8,
+  },
+  roleBtn: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#38383a',
+  },
+  roleBtnIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  roleBtnTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  roleBtnSub: {
+    fontSize: 13,
+    color: '#8e8e93',
+    textAlign: 'center',
   },
 });

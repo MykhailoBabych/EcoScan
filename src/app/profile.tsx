@@ -1,12 +1,12 @@
 import { useRef, useEffect } from 'react';
 import {
   Animated,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile } from '@/contexts/ProfileContext';
 import { WasteCategory } from '@/services/profile';
@@ -98,6 +98,7 @@ export function ProfileScreen() {
     ecoPoints, totalScans,
     scanHistory, categoryStats,
     level, levelProgress,
+    useType, schoolRole,
   } = useProfile();
 
   const theme = useTheme();
@@ -134,10 +135,11 @@ export function ProfileScreen() {
           <View style={[styles.avatarRing, { borderColor: levelColor }]}>
             <View style={styles.avatarClip}>
               <Image
-                source={require('@/assets/images/guys.png')}
+                source={require('../../assets/images/guys.png')}
+                transition={0}
                 style={[
                   styles.avatarSprite,
-                  { left: translateX, top: translateY },
+                  { transform: [{ translateX }, { translateY }] },
                 ]}
               />
             </View>
@@ -150,6 +152,15 @@ export function ProfileScreen() {
               Lv.{level.level}  {level.title}
             </Text>
           </View>
+
+          {/* Role badge (school users only) */}
+          {useType === 'school' && schoolRole && (
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>
+                {schoolRole === 'teacher' ? '🧑‍🏫 Teacher' : '📚 Student'}
+              </Text>
+            </View>
+          )}
 
           {/* Points */}
           <Text style={[styles.pointsValue, { color: levelColor }]}>
@@ -327,6 +338,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.3,
+  },
+  roleBadge: {
+    backgroundColor: '#0a84ff22',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#0a84ff',
+    marginTop: 4,
+  },
+  roleBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0a84ff',
   },
   pointsValue: {
     fontSize: 40,
