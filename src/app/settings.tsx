@@ -15,9 +15,11 @@ import {
 
 export default function SettingsScreen() {
   const [view, setView] = useState("main");
-  const { resetProfile } = useProfile();
+  const { resetProfile, schoolRole } = useProfile();
   const theme = useTheme();
   const router = useRouter();
+  const isTeacher = schoolRole === "teacher";
+  const isStudent = schoolRole === "student";
 
   const handleResetProfile = () => {
     Alert.alert(
@@ -148,10 +150,36 @@ export default function SettingsScreen() {
         </Text>
       </View>
       <ScrollView style={styles.scrollView}>
+        {(isTeacher || isStudent) && (
+          <View
+            style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+          >
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => router.push(isTeacher ? "/lessons" : "/student-lessons")}
+            >
+              <View style={styles.rowLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: "#28a745" }]}>
+                  <SymbolView name="book.fill" size={20} tintColor="#fff" />
+                </View>
+                <View>
+                  <Text style={[styles.rowText, { color: theme.text }]}>
+                    Lessons
+                  </Text>
+                  <Text style={styles.rowSubtitle}>
+                    {isTeacher ? "Create and assign tasks" : "Browse and complete tasks"}
+                  </Text>
+                </View>
+              </View>
+              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
           <TouchableOpacity style={styles.row} onPress={() => setView('about')}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#0a84ff' }]}>
+              <View style={[styles.iconContainer, { backgroundColor: '#28a745' }]}>
                 <SymbolView name="info.circle.fill" size={20} tintColor="#fff" />
               </View>
               <Text style={[styles.rowText, { color: theme.text }]}>About Us</Text>
@@ -239,6 +267,11 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 17,
+  },
+  rowSubtitle: {
+    color: "#8e8e93",
+    fontSize: 12,
+    marginTop: 2,
   },
   separator: {
     height: StyleSheet.hairlineWidth,

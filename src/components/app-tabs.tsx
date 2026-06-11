@@ -128,6 +128,8 @@ export default function AppTabs() {
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="onboarding" options={{ href: null }} />
+      <Tabs.Screen name="lessons" options={{ href: null }} />
+      <Tabs.Screen name="student-lessons" options={{ href: null }} />
     </Tabs>
   );
 }

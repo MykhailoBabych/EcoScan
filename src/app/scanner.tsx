@@ -1,4 +1,5 @@
 import { useProfile } from "@/contexts/ProfileContext";
+import { StudentLessonsService } from "@/services/lessons";
 import { WasteCategory } from "@/services/profile";
 import { getUpcyclingIdeas, UpcyclingIdea } from "@/services/upcycling-ai";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -161,6 +162,11 @@ type ScanResult = EcoAdvice & {
   reason: string;
   upcyclingIdeas: UpcyclingIdea[];
   upcyclingLoading: boolean;
+  lessonCompleted?: {
+    topic: string;
+    xpReward: number;
+    pointsReward: number;
+  };
 };
 
 type ResultTab = "recycle" | "upcycle";
@@ -177,7 +183,7 @@ export default function ScannerScreen() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<ResultTab>("recycle");
 
-  const { recordScan, updateScanUpcyclingIdeas } = useProfile();
+  const { recordScan, updateScanUpcyclingIdeas, schoolRole, awardPoints } = useProfile();
 
   if (!permission) return <View style={styles.container} />;
 
@@ -222,12 +228,26 @@ export default function ScannerScreen() {
         recyclingAdvice: advice.advice,
         upcyclingIdeas: [],
       });
+      let lessonCompleted: ScanResult["lessonCompleted"];
+
+      if (schoolRole === "student") {
+        const completed = await StudentLessonsService.tryComplete(advice.label);
+        if (completed) {
+          lessonCompleted = {
+            topic: completed.topic,
+            xpReward: completed.xpReward,
+            pointsReward: completed.pointsReward,
+          };
+          await awardPoints(completed.xpReward + completed.pointsReward);
+        }
+      }
 
       setResult({
         ...advice,
         pointsEarned,
         awarded,
         reason,
+        lessonCompleted,
         upcyclingIdeas: [],
         upcyclingLoading: true,
       });
@@ -393,6 +413,19 @@ export default function ScannerScreen() {
             </TouchableOpacity>
           </View>
 
+          {result.lessonCompleted ? (
+            <View style={styles.lessonBadge}>
+              <Text style={styles.lessonBadgeTitle}>Lesson Complete</Text>
+              <Text style={styles.lessonBadgeName}>
+                {result.lessonCompleted.topic}
+              </Text>
+              <Text style={styles.lessonBadgeReward}>
+                +{result.lessonCompleted.xpReward} XP · +
+                {result.lessonCompleted.pointsReward} pts
+              </Text>
+            </View>
+          ) : null}
+
           <ScrollView
             style={styles.tabContent}
             contentContainerStyle={{ paddingBottom: 4 }}
@@ -525,6 +558,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoBadgeText: { color: "#666", fontWeight: "600", fontSize: 14 },
+  lessonBadge: {
+    backgroundColor: "#e8f8ef",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#28a74544",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    width: "100%",
+    gap: 3,
+    marginBottom: 12,
+  },
+  lessonBadgeTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#28a745",
+  },
+  lessonBadgeName: { fontSize: 14, color: "#333", textAlign: "center" },
+  lessonBadgeReward: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1a7f3c",
+    marginTop: 2,
+  },
   tabRow: {
     flexDirection: "row",
     backgroundColor: "#f0f0f0",

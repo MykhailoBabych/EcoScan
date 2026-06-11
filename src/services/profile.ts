@@ -1,4 +1,5 @@
 import { Storage, STORAGE_KEYS } from "./storage";
+import { supabase } from "./supabase";
 
 export type WasteCategory =
   | "plastic"
@@ -21,8 +22,12 @@ export type ScanRecord = {
 
 export type CategoryStats = Record<WasteCategory, number>;
 
+export type UseType = "personal" | "school";
+export type SchoolRole = "teacher" | "student";
+
 export type UserProfile = {
   name: string;
+  email: string;
   characterIndex: number;
   ecoPoints: number;
   totalScans: number;
@@ -31,6 +36,8 @@ export type UserProfile = {
   lastScanLabel: string | null;
   categoryStats: CategoryStats;
   scanHistory: ScanRecord[];
+  useType: UseType | null;
+  schoolRole: SchoolRole | null;
 };
 
 export type Level = {
@@ -101,6 +108,7 @@ export function calcPointsForScan(
 export function emptyProfile(): UserProfile {
   return {
     name: "",
+    email: "",
     characterIndex: 0,
     ecoPoints: 0,
     totalScans: 0,
@@ -118,6 +126,8 @@ export function emptyProfile(): UserProfile {
       unknown: 0,
     },
     scanHistory: [],
+    useType: null,
+    schoolRole: null,
   };
 }
 
@@ -127,19 +137,78 @@ function normalizeProfile(profile: UserProfile): UserProfile {
   return {
     ...fallback,
     ...profile,
+    email: profile.email ?? "",
     lastScanLabel: profile.lastScanLabel ?? null,
     categoryStats: {
       ...fallback.categoryStats,
       ...profile.categoryStats,
     },
     scanHistory: profile.scanHistory ?? [],
+    useType: profile.useType ?? null,
+    schoolRole: profile.schoolRole ?? null,
   };
 }
 
 export const ProfileService = {
   async load(): Promise<UserProfile | null> {
-    const profile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
-    return profile ? normalizeProfile(profile) : null;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        const profile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+        return profile ? normalizeProfile(profile) : null;
+      }
+
+      const { data: row, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error || !row) {
+        const profile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+        return profile ? normalizeProfile(profile) : null;
+      }
+
+      const { data: scans } = await supabase
+        .from("scan_history")
+        .select("*")
+        .eq("profile_id", user.id)
+        .order("timestamp_ms", { ascending: false })
+        .limit(100);
+
+      const scanHistory: ScanRecord[] = (scans ?? []).map((scan: any) => ({
+        id: scan.id,
+        timestamp: scan.timestamp_ms,
+        objectLabel: scan.object_label,
+        category: scan.category as WasteCategory,
+        recyclingAdvice: scan.recycling_advice,
+        upcyclingIdeas: scan.upcycling_ideas ?? [],
+      }));
+
+      const profile = normalizeProfile({
+        name: row.name ?? "",
+        email: row.email ?? user.email ?? "",
+        characterIndex: row.character_index ?? 0,
+        ecoPoints: row.eco_points ?? 0,
+        totalScans: row.total_scans ?? 0,
+        scanStreak: row.scan_streak ?? 0,
+        lastScanDate: row.last_scan_date ?? null,
+        lastScanLabel: null,
+        categoryStats: row.category_stats ?? emptyProfile().categoryStats,
+        scanHistory,
+        useType: row.use_type ?? null,
+        schoolRole: row.school_role ?? null,
+      });
+
+      await Storage.set(STORAGE_KEYS.PROFILE, profile);
+      return profile;
+    } catch {
+      const profile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+      return profile ? normalizeProfile(profile) : null;
+    }
   },
 
   async save(profile: UserProfile): Promise<boolean> {
@@ -147,10 +216,70 @@ export const ProfileService = {
       ...profile,
       scanHistory: profile.scanHistory.slice(0, 100),
     };
-    return Storage.set(STORAGE_KEYS.PROFILE, toSave);
+    await Storage.set(STORAGE_KEYS.PROFILE, toSave);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return true;
+
+      await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          name: toSave.name,
+          email: toSave.email || user.email || null,
+          character_index: toSave.characterIndex,
+          eco_points: toSave.ecoPoints,
+          total_scans: toSave.totalScans,
+          scan_streak: toSave.scanStreak,
+          last_scan_date: toSave.lastScanDate,
+          category_stats: toSave.categoryStats,
+          use_type: toSave.useType,
+          school_role: toSave.schoolRole,
+        },
+        { onConflict: "id" },
+      );
+
+      const latest = toSave.scanHistory[0];
+      if (latest) {
+        await supabase.from("scan_history").upsert(
+          {
+            id: latest.id,
+            profile_id: user.id,
+            timestamp_ms: latest.timestamp,
+            object_label: latest.objectLabel,
+            category: latest.category,
+            recycling_advice: latest.recyclingAdvice,
+            upcycling_ideas: latest.upcyclingIdeas,
+          },
+          { onConflict: "id" },
+        );
+      }
+    } catch (error) {
+      console.warn("[ProfileService] remote save failed:", error);
+    }
+
+    return true;
   },
 
   async clear(): Promise<boolean> {
-    return Storage.remove(STORAGE_KEYS.PROFILE);
+    await Storage.remove(STORAGE_KEYS.PROFILE);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await supabase.from("profiles").delete().eq("id", user.id);
+      }
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn("[ProfileService] remote clear failed:", error);
+    }
+
+    return true;
   },
 };

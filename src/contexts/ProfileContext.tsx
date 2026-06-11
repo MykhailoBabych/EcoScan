@@ -10,7 +10,9 @@ import React, {
 import {
   ProfileService,
   ScanRecord,
+  SchoolRole,
   UserProfile,
+  UseType,
   calcPointsForScan,
   emptyProfile,
   getLevelForPoints,
@@ -30,6 +32,7 @@ type ProfileContextType = {
   isLoading: boolean;
   isProfileComplete: boolean;
   name: string;
+  email: string;
   characterIndex: number;
   ecoPoints: number;
   totalScans: number;
@@ -37,7 +40,17 @@ type ProfileContextType = {
   categoryStats: UserProfile["categoryStats"];
   level: ReturnType<typeof getLevelForPoints>;
   levelProgress: number;
-  completeOnboarding: (name: string, characterIndex: number) => Promise<void>;
+  useType: UseType | null;
+  schoolRole: SchoolRole | null;
+  completeOnboarding: (
+    name: string,
+    characterIndex: number,
+    useType?: UseType,
+    schoolRole?: SchoolRole | null,
+    email?: string,
+  ) => Promise<void>;
+  reloadProfile: () => Promise<void>;
+  awardPoints: (points: number) => Promise<void>;
   recordScan: (scan: Omit<ScanRecord, "id" | "timestamp">) => Promise<RecordScanResult>;
   updateScanUpcyclingIdeas: (scanId: string, ideas: string[]) => Promise<void>;
   resetProfile: () => Promise<void>;
@@ -88,8 +101,50 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOnboarding = useCallback(
-    async (name: string, characterIndex: number) => {
-      await updateProfile((prev) => ({ ...prev, name, characterIndex }));
+    async (
+      name: string,
+      characterIndex: number,
+      useType: UseType = "personal",
+      schoolRole: SchoolRole | null = null,
+      email = "",
+    ) => {
+      await updateProfile((prev) => ({
+        ...prev,
+        name,
+        email,
+        characterIndex,
+        useType,
+        schoolRole,
+      }));
+    },
+    [updateProfile],
+  );
+
+  const reloadProfile = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const saved = await Promise.race([
+        ProfileService.load(),
+        new Promise<null>((resolve) =>
+          setTimeout(resolve, PROFILE_LOAD_TIMEOUT_MS),
+        ),
+      ]);
+
+      if (saved) setProfile(saved);
+    } catch (error) {
+      console.warn("Profile reload failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const awardPoints = useCallback(
+    async (points: number) => {
+      if (points <= 0) return;
+      await updateProfile((current) => ({
+        ...current,
+        ecoPoints: current.ecoPoints + points,
+      }));
     },
     [updateProfile],
   );
@@ -168,6 +223,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isProfileComplete,
         name: profile.name,
+        email: profile.email,
         characterIndex: profile.characterIndex,
         ecoPoints: profile.ecoPoints,
         totalScans: profile.totalScans,
@@ -175,7 +231,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         categoryStats: profile.categoryStats,
         level,
         levelProgress,
+        useType: profile.useType,
+        schoolRole: profile.schoolRole,
         completeOnboarding,
+        reloadProfile,
+        awardPoints,
         recordScan,
         updateScanUpcyclingIdeas,
         resetProfile,
