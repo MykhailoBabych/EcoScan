@@ -21,8 +21,8 @@ const TABS: TabDef[] = [
   { name: "map", label: "Map", icon: "map.fill" },
   { name: "activity", label: "Activity", icon: "list.bullet" },
   { name: "scanner", label: "Scan", icon: "camera.fill", center: true },
+  { name: "planet", label: "Planet", icon: "globe.europe.africa.fill" },
   { name: "profile", label: "Profile", icon: "person.fill" },
-  { name: "settings", label: "Settings", icon: "gearshape.fill" },
 ];
 
 const ACCENT = "#28a745";
@@ -123,8 +123,9 @@ export default function AppTabs() {
       <Tabs.Screen name="map" />
       <Tabs.Screen name="activity" />
       <Tabs.Screen name="scanner" />
+      <Tabs.Screen name="planet" />
       <Tabs.Screen name="profile" />
-      <Tabs.Screen name="settings" />
+      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="onboarding" options={{ href: null }} />

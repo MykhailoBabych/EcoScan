@@ -26,8 +26,8 @@ const WEB_TABS: WebTab[] = [
   { name: "map", href: "/map", label: "Map", icon: "map.fill" },
   { name: "activity", href: "/activity", label: "Activity", icon: "list.bullet" },
   { name: "scanner", href: "/scanner", label: "Scan", icon: "camera.fill" },
+  { name: "planet", href: "/planet", label: "Planet", icon: "globe.europe.africa.fill" },
   { name: "profile", href: "/profile", label: "Profile", icon: "person.fill" },
-  { name: "settings", href: "/settings", label: "Settings", icon: "gearshape.fill" },
 ];
 
 export default function AppTabs() {

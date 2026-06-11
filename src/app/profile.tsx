@@ -1,6 +1,8 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { WasteCategory } from "@/services/profile";
+import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useEffect } from "react";
 import {
   Animated,
@@ -8,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -125,6 +128,7 @@ export default function ProfileScreen() {
   } = useProfile();
 
   const theme = useTheme();
+  const router = useRouter();
 
   const col = characterIndex % 3;
   const row = Math.floor(characterIndex / 3);
@@ -150,6 +154,19 @@ export default function ProfileScreen() {
       style={[styles.safe, { backgroundColor: theme.background }]}
       edges={["top"]}
     >
+      <View style={styles.profileHeader}>
+        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => router.push("/settings")}
+          style={[
+            styles.settingsButton,
+            { backgroundColor: theme.backgroundElement },
+          ]}
+        >
+          <SymbolView name="gearshape.fill" size={20} tintColor={theme.text} />
+        </TouchableOpacity>
+      </View>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[
@@ -351,6 +368,25 @@ function StatCard({
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  headerSpacer: {
+    width: 40,
+    height: 40,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   scroll: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
 
   // Hero
