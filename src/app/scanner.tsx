@@ -233,13 +233,46 @@ type ScanResult = EcoAdvice & {
 
 type ResultTab = "recycle" | "upcycle";
 
+const DEFAULT_BACK_LENS = "Back Camera";
+
+function getPreferredBackLens(lenses: string[]) {
+  const normalLens = lenses.find((lens) => lens === DEFAULT_BACK_LENS);
+  if (normalLens) return normalLens;
+
+  const wideLens = lenses.find((lens) => {
+    const normalized = lens.toLowerCase();
+    return (
+      normalized.includes("wide") &&
+      !normalized.includes("ultra") &&
+      !normalized.includes("dual") &&
+      !normalized.includes("triple") &&
+      !normalized.includes("telephoto")
+    );
+  });
+  if (wideLens) return wideLens;
+
+  return (
+    lenses.find((lens) => {
+      const normalized = lens.toLowerCase();
+      return (
+        normalized.includes("back") &&
+        !normalized.includes("ultra") &&
+        !normalized.includes("telephoto")
+      );
+    }) ?? lenses[0]
+  );
+}
+
+function getLensesFromEvent(event: any): string[] {
+  return event?.lenses ?? event?.nativeEvent?.lenses ?? [];
+}
+
 const ideaToProfileText = (idea: UpcyclingIdea) =>
   idea.description ? `${idea.title}: ${idea.description}` : idea.title;
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<"back" | "front">("back");
-  const [zoom, setZoom] = useState(0);
+  const [selectedLens, setSelectedLens] = useState<string | undefined>();
   const cameraRef = useRef<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -260,9 +293,6 @@ export default function ScannerScreen() {
       </View>
     );
   }
-
-  const toggleCameraFacing = () =>
-    setFacing((current) => (current === "back" ? "front" : "back"));
 
   const takePhotoAndAnalyze = async () => {
     if (!cameraRef.current) return;
@@ -345,6 +375,26 @@ export default function ScannerScreen() {
     }
   };
 
+  const handleAvailableLensesChanged = (event: any) => {
+    const lenses = getLensesFromEvent(event);
+    if (lenses.length === 0) return;
+
+    const preferredLens = getPreferredBackLens(lenses);
+    setSelectedLens((current) =>
+      current === preferredLens ? current : preferredLens,
+    );
+  };
+
+  const handleCameraReady = async () => {
+    const lenses = await cameraRef.current?.getAvailableLensesAsync?.();
+    if (!Array.isArray(lenses) || lenses.length === 0) return;
+
+    const preferredLens = getPreferredBackLens(lenses);
+    setSelectedLens((current) =>
+      current === preferredLens ? current : preferredLens,
+    );
+  };
+
   const analyzeImage = async (base64: string) => {
     try {
       const response = await fetch(
@@ -380,19 +430,13 @@ export default function ScannerScreen() {
     <View style={styles.container}>
       <CameraView
         style={styles.camera}
-        facing={facing}
-        zoom={zoom}
+        facing="back"
+        selectedLens={selectedLens}
+        zoom={0}
+        onAvailableLensesChanged={handleAvailableLensesChanged}
+        onCameraReady={handleCameraReady}
         ref={cameraRef}
       >
-        <View style={styles.topControls}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={toggleCameraFacing}
-          >
-            <Text style={styles.textSmall}>Flip</Text>
-          </TouchableOpacity>
-        </View>
-
         <View style={styles.buttonContainer} pointerEvents="box-none">
           <TouchableOpacity
             style={[styles.captureButton, analyzing && styles.buttonDisabled]}
@@ -404,25 +448,6 @@ export default function ScannerScreen() {
             ) : (
               <Text style={styles.text}>Scan Object</Text>
             )}
-          </TouchableOpacity>
-        </View>
-
-        <View
-          style={[styles.sideControls, { zIndex: 100 }]}
-          pointerEvents="box-none"
-        >
-          <Text style={styles.textSmall}>{(zoom * 100).toFixed(0)}%</Text>
-          <TouchableOpacity
-            style={[styles.iconButton, { marginTop: 5 }]}
-            onPress={() => setZoom((current) => Math.min(current + 0.05, 1))}
-          >
-            <Text style={styles.textSmall}>Zoom +</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconButton, { marginTop: 10 }]}
-            onPress={() => setZoom((current) => Math.max(current - 0.05, 0))}
-          >
-            <Text style={styles.textSmall}>Zoom -</Text>
           </TouchableOpacity>
         </View>
       </CameraView>
@@ -584,23 +609,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   camera: { flex: 1 },
-  topControls: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    padding: 20,
-    paddingTop: 50,
-  },
-  sideControls: {
-    position: "absolute",
-    right: 20,
-    top: 120,
-    alignItems: "center",
-  },
-  iconButton: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    padding: 10,
-    borderRadius: 8,
-  },
   buttonContainer: {
     flex: 1,
     flexDirection: "row",
@@ -619,7 +627,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { backgroundColor: "#1E7E34", opacity: 0.7 },
   text: { fontSize: 18, fontWeight: "bold", color: "white" },
-  textSmall: { fontSize: 14, fontWeight: "bold", color: "white" },
   resultContainer: {
     position: "absolute",
     bottom: 72,
