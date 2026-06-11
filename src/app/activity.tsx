@@ -1,6 +1,7 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { ACHIEVEMENTS } from "@/services/achievements";
+import { LeaderboardEntry, LeaderboardService } from "@/services/lessons";
 import {
   POINTS_PER_CORRECT,
   PERFECT_SCORE_BONUS,
@@ -10,7 +11,7 @@ import {
 } from "@/services/quiz";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -21,20 +22,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ─── Leaderboard mock data ────────────────────────────────────────────────────
+// ─── Medal colors ─────────────────────────────────────────────────────────────
 
-const LEADERBOARD = [
-  { rank: 1, name: "EcoWarrior99", score: 1250 },
-  { rank: 2, name: "GreenEarth", score: 1100 },
-  { rank: 3, name: "PlanetSaver", score: 980 },
-  { rank: 4, name: "TreeHugger", score: 850 },
-  { rank: 5, name: "RecycleKing", score: 720 },
-  { rank: 6, name: "OceanProtector", score: 690 },
-  { rank: 7, name: "NatureLover", score: 630 },
-  { rank: 8, name: "EcoFriendly", score: 580 },
-  { rank: 9, name: "ZeroWaste", score: 510 },
-  { rank: 10, name: "GreenThumb", score: 450 },
-];
+const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
@@ -42,9 +32,22 @@ export default function ActivityScreen() {
   const [view, setView] = useState<"main" | "leaderboard" | "achievements" | "quiz">("main");
   const theme = useTheme();
   const router = useRouter();
-  const { schoolRole, totalScans, awardPoints } = useProfile();
+  const { name, schoolRole, totalScans, awardPoints } = useProfile();
   const isTeacher = schoolRole === "teacher";
   const isStudent = schoolRole === "student";
+
+  // ── Leaderboard state ───────────────────────────────────────────────────────
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+  useEffect(() => {
+    if (view !== "leaderboard") return;
+    setLeaderboardLoading(true);
+    LeaderboardService.load().then((data) => {
+      setLeaderboard(data);
+      setLeaderboardLoading(false);
+    });
+  }, [view]);
 
   // ── Quiz state ──────────────────────────────────────────────────────────────
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -239,20 +242,45 @@ export default function ActivityScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         {renderHeader("Leaderboard", "main", "Activity")}
         <ScrollView style={styles.scrollView}>
-          <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-            {LEADERBOARD.map((user, index) => (
-              <View key={user.rank}>
-                <View style={styles.row}>
-                  <View style={styles.rowLeft}>
-                    <Text style={[styles.rankText, { color: theme.text }]}>#{user.rank}</Text>
-                    <Text style={[styles.rowText, { color: theme.text, marginLeft: 16 }]}>{user.name}</Text>
+          {leaderboardLoading ? (
+            <View style={styles.leaderboardLoading}>
+              <SymbolView name="arrow.clockwise" size={24} tintColor="#28a745" />
+              <Text style={[styles.leaderboardLoadingText, { color: theme.textSecondary }]}>
+                Loading...
+              </Text>
+            </View>
+          ) : leaderboard.length === 0 ? (
+            <View style={styles.leaderboardLoading}>
+              <Text style={{ fontSize: 36 }}>🌱</Text>
+              <Text style={[styles.leaderboardLoadingText, { color: theme.textSecondary }]}>
+                No scores yet. Be the first!
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+              {leaderboard.map((user, index) => {
+                const isMe = name.trim() !== "" && user.name === name.trim();
+                return (
+                  <View key={user.rank}>
+                    <View style={[styles.row, isMe && styles.rowHighlight]}>
+                      <View style={styles.rowLeft}>
+                        <Text style={[styles.rankText, { color: isMe ? "#28a745" : theme.text }]}>
+                          {MEDAL[user.rank] ?? `#${user.rank}`}
+                        </Text>
+                        <Text style={[styles.rowText, { color: isMe ? "#28a745" : theme.text, marginLeft: 12, fontWeight: isMe ? "700" : "400" }]}>
+                          {user.name}{isMe ? " (you)" : ""}
+                        </Text>
+                      </View>
+                      <Text style={[styles.scoreText, { color: isMe ? "#28a745" : "#0a84ff" }]}>
+                        {user.score} pts
+                      </Text>
+                    </View>
+                    {index < leaderboard.length - 1 && <View style={styles.separator} />}
                   </View>
-                  <Text style={[styles.scoreText, { color: "#0a84ff" }]}>{user.score}</Text>
-                </View>
-                {index < LEADERBOARD.length - 1 && <View style={styles.separator} />}
-              </View>
-            ))}
-          </View>
+                );
+              })}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     );
@@ -405,8 +433,11 @@ const styles = StyleSheet.create({
   rowText: { fontSize: 17 },
   rowSubtitle: { color: "#8e8e93", fontSize: 12, marginTop: 2 },
   separator: { height: StyleSheet.hairlineWidth, backgroundColor: "#38383a", marginLeft: 16 },
-  rankText: { fontSize: 17, fontWeight: "600", width: 30 },
+  rankText: { fontSize: 17, fontWeight: "600", width: 36 },
   scoreText: { fontSize: 17, fontWeight: "bold" },
+  rowHighlight: { backgroundColor: "rgba(40,167,69,0.08)" },
+  leaderboardLoading: { alignItems: "center", paddingVertical: 48, gap: 12 },
+  leaderboardLoadingText: { fontSize: 15 },
 
   // ── Quiz card ──────────────────────────────────────────────────────────────
   quizCard: {
