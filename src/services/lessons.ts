@@ -263,6 +263,30 @@ export const StudentLessonsService = {
   },
 };
 
+// ─── Leaderboard ─────────────────────────────────────────────────────────────
+
+export type LeaderboardEntry = {
+  rank: number;
+  name: string;
+  score: number;
+};
+
+export const LeaderboardService = {
+  async load(limit = 20): Promise<LeaderboardEntry[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: limit });
+      if (error || !data) return [];
+      return (data as any[]).map((row) => ({
+        rank: Number(row.rank),
+        name: row.name as string,
+        score: Number(row.score),
+      }));
+    } catch {
+      return [];
+    }
+  },
+};
+
 // ─── Teacher: load student list ──────────────────────────────────────────────
 
 export type StudentProfile = {
