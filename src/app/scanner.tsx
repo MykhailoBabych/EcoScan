@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "transparent",
     justifyContent: "center",
-    marginBottom: 100,
+    marginBottom: 72,
     alignItems: "flex-end",
   },
   captureButton: {
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   textSmall: { fontSize: 14, fontWeight: "bold", color: "white" },
   resultContainer: {
     position: "absolute",
-    bottom: 90,
+    bottom: 72,
     left: 0,
     right: 0,
     backgroundColor: "white",

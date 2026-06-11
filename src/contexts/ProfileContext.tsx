@@ -17,6 +17,8 @@ import {
   getProgressToNextLevel,
 } from "@/services/profile";
 
+const PROFILE_LOAD_TIMEOUT_MS = 2500;
+
 type RecordScanResult = {
   pointsEarned: number;
   scanId: string;
@@ -51,11 +53,28 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   profileRef.current = profile;
 
   useEffect(() => {
+    let isMounted = true;
+
     (async () => {
-      const saved = await ProfileService.load();
-      if (saved) setProfile(saved);
-      setIsLoading(false);
+      try {
+        const saved = await Promise.race([
+          ProfileService.load(),
+          new Promise<null>((resolve) =>
+            setTimeout(resolve, PROFILE_LOAD_TIMEOUT_MS),
+          ),
+        ]);
+
+        if (saved && isMounted) setProfile(saved);
+      } catch (error) {
+        console.warn("Profile load failed:", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const updateProfile = useCallback(

@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   },
   statusPanel: {
     position: "absolute",
-    bottom: 104,
+    bottom: 82,
     left: 16,
     right: 16,
     borderRadius: 18,
