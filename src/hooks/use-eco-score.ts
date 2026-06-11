@@ -7,9 +7,15 @@ const RECYCLABLE: WasteCategory[] = [
   "paper",
   "cardboard",
   "metal",
+  "textile",
+  "batteries",
+  "composite",
+  "wood",
+  "toys",
+  "kitchenware",
 ];
 
-const POLLUTING: WasteCategory[] = ["electronics", "food", "unknown"];
+const POLLUTING: WasteCategory[] = ["electronics", "food", "hazardous", "unknown"];
 
 export function useEcoScore() {
   const { categoryStats, totalScans } = useProfile();
