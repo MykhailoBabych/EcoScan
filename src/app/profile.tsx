@@ -35,8 +35,15 @@ const CATEGORY_META: Record<WasteCategory, { label: string; emoji: string; color
   cardboard:   { label: 'Cardboard',    emoji: '📦', color: '#d97706' },
   metal:       { label: 'Metal',        emoji: '🥫', color: '#6b7280' },
   food:        { label: 'Food/Organic', emoji: '🍌', color: '#22c55e' },
-  electronics: { label: 'Electronics', emoji: '📱', color: '#ef4444' },
+  electronics: { label: 'Electronics',  emoji: '📱', color: '#ef4444' },
+  textile:     { label: 'Textile',      emoji: '👕', color: '#ec4899' },
   unknown:     { label: 'Other',        emoji: '❓', color: '#94a3b8' },
+  hazardous:   { label: 'Hazardous',    emoji: '☢️', color: '#ef4444' },
+  batteries:   { label: 'Batteries',    emoji: '🔋', color: '#eab308' },
+  composite:   { label: 'Composite',    emoji: '🧃', color: '#f97316' },
+  wood:        { label: 'Wood',         emoji: '🪵', color: '#92400e' },
+  toys:        { label: 'Toys',         emoji: '🧸', color: '#8b5cf6' },
+  kitchenware: { label: 'Kitchenware',  emoji: '🍳', color: '#14b8a6' },
 };
 
 const LEVEL_COLORS = ['#94a3b8', '#22c55e', '#0ea5e9', '#8b5cf6', '#f59e0b'];
@@ -115,8 +122,8 @@ export default function ProfileScreen() {
 
   // Only show categories with at least 1 scan, sorted descending
   const activeCats = (Object.entries(categoryStats) as [WasteCategory, number][])
-    .filter(([, count]) => count > 0)
-    .sort(([, a], [, b]) => b - a);
+    .filter(([, count]) => (count ?? 0) > 0)
+    .sort(([, a], [, b]) => (b ?? 0) - (a ?? 0));
 
   const maxCatCount = activeCats[0]?.[1] ?? 1;
 

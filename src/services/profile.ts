@@ -10,6 +10,13 @@ export type WasteCategory =
   | 'metal'
   | 'food'
   | 'electronics'
+  | 'textile'
+  | 'hazardous'
+  | 'batteries'
+  | 'composite'
+  | 'wood'
+  | 'toys'
+  | 'kitchenware'
   | 'unknown';
 
 export type ScanRecord = {
@@ -96,7 +103,10 @@ export function emptyProfile(): UserProfile {
     categoryStats: {
       plastic: 0, glass: 0, paper: 0,
       cardboard: 0, metal: 0, food: 0,
-      electronics: 0, unknown: 0,
+      electronics: 0, textile: 0,
+      hazardous: 0, batteries: 0, composite: 0,
+      wood: 0, toys: 0, kitchenware: 0,
+      unknown: 0,
     },
     scanHistory: [],
   };

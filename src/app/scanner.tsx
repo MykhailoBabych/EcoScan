@@ -51,12 +51,92 @@ const RECYCLING_CATEGORIES: CategoryDef[] = [
     keywords: ['electronic', 'phone', 'computer', 'laptop', 'battery', 'wire', 'cable', 'device', 'charger'],
     advice: 'Take to an e-waste recycling center.',
   },
+  {
+    category: 'textile',
+    keywords: [
+      'bag', 'backpack', 'handbag', 'purse', 'tote',
+      'clothing', 'clothes', 'garment', 'jacket', 'coat', 'jeans', 'denim',
+      'shirt', 'dress', 'sock', 'shoe', 'boot', 'sneaker',
+      'fabric', 'textile', 'cloth', 'linen', 'cotton', 'wool', 'polyester',
+      'blanket', 'towel', 'curtain',
+    ],
+    advice: 'Donate if reusable, or drop at a textile recycling bin.',
+  },
+  {
+    category: 'hazardous',
+    keywords: [
+      'paint', 'chemical', 'cleaner', 'detergent',
+      'bleach', 'solvent', 'oil', 'motor oil',
+      'pesticide', 'fertilizer',
+    ],
+    advice: 'Dispose at hazardous waste facility.',
+  },
+  {
+    category: 'batteries',
+    keywords: [
+      'battery', 'aa', 'aaa', 'lithium', 'rechargeable',
+      'power bank',
+    ],
+    advice: 'Do not throw in trash. Take to battery recycling point.',
+  },
+  {
+    category: 'composite',
+    keywords: [
+      'coffee cup', 'paper cup', 'to-go cup',
+      'tetra pak', 'juice carton', 'milk carton',
+    ],
+    advice: 'Often not recyclable. Check local rules.',
+  },
+  {
+    category: 'wood',
+    keywords: [
+      'wood', 'timber', 'plank', 'furniture',
+      'chair', 'table',
+    ],
+    advice: 'Reuse or take to recycling center.',
+  },
+  {
+    category: 'toys',
+    keywords: [
+      'toy', 'lego', 'doll', 'action figure',
+      'plastic toy',
+    ],
+    advice: 'Donate if usable, otherwise dispose depending on material.',
+  },
+  {
+    category: 'kitchenware',
+    keywords: [
+      'plate', 'pan', 'pot', 'utensil',
+      'cutlery', 'fork', 'spoon',
+    ],
+    advice: 'Dispose based on material (metal, ceramic, etc).',
+  },
 ];
 
-const IGNORED_WORDS = [
+// Labels that indicate the camera isn't pointed at a real object
+const JUNK_LABELS = [
+  // Body parts
+  'shoulder', 'arm', 'hand', 'finger', 'thumb', 'wrist', 'elbow',
+  'face', 'head', 'neck', 'chin', 'cheek', 'forehead', 'nose', 'mouth', 'ear', 'eye',
+  'hair', 'skin', 'flesh', 'torso', 'chest', 'back', 'leg', 'foot', 'toe', 'knee',
+  // People
+  'person', 'human', 'man', 'woman', 'people', 'boy', 'girl', 'child', 'baby',
+  // Abstract / environment
+  'shadow', 'reflection', 'light', 'darkness', 'silhouette', 'blur',
+  'floor', 'wall', 'ceiling', 'ground', 'surface', 'background',
+  'sky', 'fog', 'smoke', 'air',
+  // Clothing removed — handled by textile category
+  'sleeve', 'collar',
+  // Generic visual descriptors
   'color', 'red', 'blue', 'green', 'pink', 'yellow', 'white', 'black',
   'liquid', 'material', 'cylinder', 'circle', 'rectangle', 'shape', 'object',
+  // Abstract Vision API labels for surfaces/scenes
+  'graphics', 'pattern', 'design', 'image', 'photo', 'picture', 'screenshot',
+  'texture', 'wallpaper', 'illustration', 'font', 'text',
+  'room', 'indoor', 'outdoor', 'scene', 'space', 'area',
 ];
+
+const MIN_SCORE = 0.55; // ignore low-confidence Vision API labels
 
 type EcoAdvice = {
   label: string;
@@ -64,8 +144,21 @@ type EcoAdvice = {
   category: WasteCategory;
 };
 
-const getEcoAdvice = (labels: any[]): EcoAdvice => {
-  for (const label of labels) {
+// Returns null when the image is clearly not a recyclable object
+const getEcoAdvice = (labels: any[]): EcoAdvice | null => {
+  const goodLabels = labels.filter((l) => (l.score ?? 1) >= MIN_SCORE);
+
+  if (goodLabels.length === 0) return null;
+
+  // If all top labels are junk → reject
+  const topFive = goodLabels.slice(0, 5);
+  const allJunk = topFive.every((l) =>
+    JUNK_LABELS.some((junk) => l.description.toLowerCase().includes(junk))
+  );
+  if (allJunk) return null;
+
+  // Try to match a known recycling category
+  for (const label of goodLabels) {
     const desc = label.description.toLowerCase();
     for (const cat of RECYCLING_CATEGORIES) {
       if (cat.keywords.some((kw) => desc.includes(kw))) {
@@ -74,10 +167,10 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
     }
   }
 
-  // First non-ignored label
-  for (const label of labels) {
+  // Real object but unclassifiable → unknown (no points given)
+  for (const label of goodLabels) {
     const desc = label.description.toLowerCase();
-    if (!IGNORED_WORDS.some((iw) => desc.includes(iw))) {
+    if (!JUNK_LABELS.some((junk) => desc.includes(junk))) {
       return {
         label: label.description,
         advice: "Couldn't classify clearly. Check your local recycling guidelines.",
@@ -86,11 +179,7 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
     }
   }
 
-  return {
-    label: labels[0]?.description || 'Unknown Object',
-    advice: 'Item not recognized. When in doubt, throw it out!',
-    category: 'unknown',
-  };
+  return null;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -137,12 +226,27 @@ export function ScannerScreen() {
 
       const advice = getEcoAdvice(labels);
 
-      // ── Record scan in profile ──────────────────────────────────────────
+      // Junk detection (shadow, body part, etc.) — ignore entirely
+      if (!advice) {
+        Alert.alert(
+          'No object detected',
+          'Point your camera at a recyclable item like a bottle, can, or box.'
+        );
+        return;
+      }
+
+      // Unknown object — show advice but no points
+      if (advice.category === 'unknown') {
+        setResult({ ...advice, pointsEarned: 0 });
+        return;
+      }
+
+      // ── Known category: record scan and award points ────────────────────
       const { pointsEarned } = await recordScan({
         objectLabel: advice.label,
         category: advice.category,
         recyclingAdvice: advice.advice,
-        upcyclingIdeas: [],   // will be filled in Stage 5 (Upcycling AI)
+        upcyclingIdeas: [],
       });
 
       setResult({ ...advice, pointsEarned });
