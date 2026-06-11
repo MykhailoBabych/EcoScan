@@ -1,6 +1,7 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { ACHIEVEMENTS } from "@/services/achievements";
+import { GUIDE, GuideEntry } from "@/services/guide";
 import {
   POINTS_PER_CORRECT,
   PERFECT_SCORE_BONUS,
@@ -8,9 +9,9 @@ import {
   QuizQuestion,
   getRandomQuestions,
 } from "@/services/quiz";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -39,7 +40,17 @@ const LEADERBOARD = [
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ActivityScreen() {
-  const [view, setView] = useState<"main" | "leaderboard" | "achievements" | "quiz">("main");
+  const [view, setView] = useState<"main" | "leaderboard" | "achievements" | "quiz" | "guide" | "guide-detail">("main");
+  const [selectedGuide, setSelectedGuide] = useState<GuideEntry | null>(null);
+  const navigation = useNavigation();
+
+  // Tap the Activity tab from anywhere → go back to main
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("tabPress" as any, () => {
+      setView("main");
+    });
+    return unsubscribe;
+  }, [navigation]);
   const theme = useTheme();
   const router = useRouter();
   const { schoolRole, totalScans, awardPoints } = useProfile();
@@ -105,7 +116,7 @@ export default function ActivityScreen() {
   };
 
   // ── Header helper ───────────────────────────────────────────────────────────
-  const renderHeader = (title: string, backView: "main", backLabel: string) => (
+  const renderHeader = (title: string, backView: "main" | "guide", backLabel: string) => (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={() => setView(backView)}>
         <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
@@ -233,6 +244,111 @@ export default function ActivityScreen() {
     );
   }
 
+  // ── Guide list view ─────────────────────────────────────────────────────────
+  if (view === "guide") {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        {renderHeader("Recycling Guide", "main", "Activity")}
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 32 }}>
+          <Text style={[styles.guideIntro, { color: theme.textSecondary }]}>
+            Learn how to handle 14 types of waste — what to do, what not to do, and why it matters.
+          </Text>
+          {GUIDE.map((entry) => (
+            <TouchableOpacity
+              key={entry.category}
+              style={[styles.guideListCard, { backgroundColor: theme.backgroundElement }]}
+              onPress={() => { setSelectedGuide(entry); setView("guide-detail"); }}
+              activeOpacity={0.75}
+            >
+              <View style={[styles.guideListEmoji, { backgroundColor: entry.color + "22" }]}>
+                <Text style={styles.guideListEmojiText}>{entry.emoji}</Text>
+              </View>
+              <View style={styles.guideListInfo}>
+                <Text style={[styles.guideListTitle, { color: theme.text }]}>
+                  {entry.category.charAt(0).toUpperCase() + entry.category.slice(1)}
+                </Text>
+                <Text style={[styles.guideListSub, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {entry.overview.slice(0, 60)}…
+                </Text>
+              </View>
+              <View style={[styles.guideRecycleBadge, { backgroundColor: entry.recyclable ? "#16a34a22" : "#ef444422" }]}>
+                <Text style={[styles.guideRecycleText, { color: entry.recyclable ? "#16a34a" : "#ef4444" }]}>
+                  {entry.recyclable ? "♻️" : "⚠️"}
+                </Text>
+              </View>
+              <SymbolView name="chevron.right" size={16} tintColor="#8e8e93" />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Guide detail view ────────────────────────────────────────────────────────
+  if (view === "guide-detail" && selectedGuide) {
+    const entry = selectedGuide;
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        {renderHeader(
+          entry.category.charAt(0).toUpperCase() + entry.category.slice(1),
+          "guide" as "main",
+          "Guide"
+        )}
+        <ScrollView key={entry.category} style={styles.scrollView} contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* Hero */}
+          <View style={[styles.guideHero, { backgroundColor: entry.color + "18" }]}>
+            <Text style={styles.guideHeroEmoji}>{entry.emoji}</Text>
+            <View style={[
+              styles.guideHeroBadge,
+              { backgroundColor: entry.recyclable ? "#16a34a22" : "#ef444422", borderColor: entry.recyclable ? "#16a34a" : "#ef4444" }
+            ]}>
+              <Text style={[styles.guideHeroBadgeText, { color: entry.recyclable ? "#16a34a" : "#ef4444" }]}>
+                {entry.recyclable ? "✅ Recyclable" : "⚠️ Special disposal"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Overview */}
+          <Text style={[styles.guideOverview, { color: theme.text }]}>{entry.overview}</Text>
+
+          {/* Preparation */}
+          <View style={[styles.guideSection, { backgroundColor: theme.backgroundElement }]}>
+            <Text style={[styles.guideSectionTitle, { color: theme.text }]}>✅ How to prepare</Text>
+            {entry.preparationSteps.map((step, i) => (
+              <View key={i} style={styles.guideBulletRow}>
+                <Text style={[styles.guideBulletNum, { color: entry.color }]}>{i + 1}</Text>
+                <Text style={[styles.guideBulletText, { color: theme.text }]}>{step}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Common mistakes */}
+          <View style={[styles.guideSection, { backgroundColor: theme.backgroundElement }]}>
+            <Text style={[styles.guideSectionTitle, { color: theme.text }]}>❌ Common mistakes</Text>
+            {entry.commonMistakes.map((mistake, i) => (
+              <View key={i} style={styles.guideBulletRow}>
+                <Text style={styles.guideMistakeDot}>•</Text>
+                <Text style={[styles.guideBulletText, { color: theme.text }]}>{mistake}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Where does it go */}
+          <View style={[styles.guideSection, { backgroundColor: entry.color + "15" }]}>
+            <Text style={[styles.guideSectionTitle, { color: theme.text }]}>📍 Where it goes</Text>
+            <Text style={[styles.guideAccepted, { color: entry.color }]}>{entry.acceptedIn}</Text>
+          </View>
+
+          {/* Fun fact */}
+          <View style={[styles.guideFactBox, { borderLeftColor: entry.color }]}>
+            <Text style={[styles.guideFactLabel, { color: entry.color }]}>💡 Did you know?</Text>
+            <Text style={[styles.guideFactText, { color: theme.textSecondary }]}>{entry.funFact}</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   // ── Leaderboard view ────────────────────────────────────────────────────────
   if (view === "leaderboard") {
     return (
@@ -316,6 +432,27 @@ export default function ActivityScreen() {
               <SymbolView name="leaf.fill" size={36} tintColor="rgba(255,255,255,0.9)" />
               <View style={styles.quizCardArrow}>
                 <SymbolView name="arrow.right" size={14} tintColor="#16a34a" />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ── Guide card ────────────────────────────────────────────────────── */}
+        <TouchableOpacity style={styles.guideCard} onPress={() => setView("guide")} activeOpacity={0.85}>
+          <View style={styles.guideCardCircle1} />
+          <View style={styles.guideCardCircle2} />
+          <View style={styles.quizCardContent}>
+            <View>
+              <Text style={styles.guizCardTitle}>Recycling Guide</Text>
+              <Text style={styles.quizCardSubtitle}>14 materials, dos & don'ts</Text>
+              <View style={styles.quizCardBadge}>
+                <Text style={styles.quizCardBadgeText}>Free reference</Text>
+              </View>
+            </View>
+            <View style={styles.quizCardIconWrap}>
+              <SymbolView name="book.fill" size={36} tintColor="rgba(255,255,255,0.9)" />
+              <View style={[styles.quizCardArrow, { backgroundColor: "#fff" }]}>
+                <SymbolView name="arrow.right" size={14} tintColor="#0891b2" />
               </View>
             </View>
           </View>
@@ -578,6 +715,153 @@ const styles = StyleSheet.create({
   doneButtonText: { color: "#fff", fontSize: 17, fontWeight: "700" },
   retryButton: { padding: 12 },
   retryButtonText: { fontSize: 15 },
+
+  // ── Guide card ────────────────────────────────────────────────────────────
+  guideCard: {
+    backgroundColor: "#0891b2",
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: "hidden",
+    minHeight: 120,
+    shadowColor: "#0891b2",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  guideCardCircle1: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "#16a34a",
+    opacity: 0.25,
+    top: -55,
+    right: -35,
+  },
+  guideCardCircle2: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#fff",
+    opacity: 0.06,
+    bottom: -20,
+    left: 30,
+  },
+  guizCardTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#fff",
+    marginBottom: 4,
+  },
+
+  // ── Guide list ─────────────────────────────────────────────────────────────
+  guideIntro: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  guideListCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    gap: 12,
+  },
+  guideListEmoji: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guideListEmojiText: { fontSize: 24 },
+  guideListInfo: { flex: 1 },
+  guideListTitle: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
+  guideListSub: { fontSize: 13 },
+  guideRecycleBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  guideRecycleText: { fontSize: 16 },
+
+  // ── Guide detail ───────────────────────────────────────────────────────────
+  guideHero: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  guideHeroEmoji: { fontSize: 64 },
+  guideHeroBadge: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  guideHeroBadgeText: { fontSize: 14, fontWeight: "700" },
+  guideOverview: {
+    fontSize: 15,
+    lineHeight: 23,
+    marginBottom: 16,
+  },
+  guideSection: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    gap: 10,
+  },
+  guideSectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  guideBulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  guideBulletNum: {
+    fontSize: 14,
+    fontWeight: "800",
+    width: 18,
+    marginTop: 1,
+  },
+  guideMistakeDot: {
+    fontSize: 16,
+    color: "#ef4444",
+    width: 18,
+    marginTop: 1,
+  },
+  guideBulletText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  guideAccepted: {
+    fontSize: 15,
+    fontWeight: "600",
+    lineHeight: 22,
+  },
+  guideFactBox: {
+    borderLeftWidth: 3,
+    paddingLeft: 16,
+    paddingVertical: 4,
+    marginBottom: 12,
+    gap: 6,
+  },
+  guideFactLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  guideFactText: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
 
   // ── Achievements ───────────────────────────────────────────────────────────
   achievementsGrid: { paddingBottom: 24 },
