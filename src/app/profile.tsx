@@ -79,7 +79,7 @@ function ScanItem({
 }: {
   item: ReturnType<typeof useProfile>["scanHistory"][number];
 }) {
-  const meta = CATEGORY_META[item.category];
+  const meta = CATEGORY_META[item.category] ?? CATEGORY_META.unknown;
   const theme = useTheme();
   const date = new Date(item.timestamp);
   const dateStr = date.toLocaleDateString(undefined, {
