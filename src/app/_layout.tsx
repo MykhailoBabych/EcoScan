@@ -10,7 +10,6 @@ import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import AppTabs from "@/components/app-tabs";
 import { ProfileProvider, useProfile } from "@/contexts/ProfileContext";
 
-// Inner component so it can consume ProfileContext
 function AppShell() {
   const { isLoading, isProfileComplete } = useProfile();
 
@@ -43,6 +42,7 @@ function AppShell() {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <ProfileProvider>

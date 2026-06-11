@@ -1,24 +1,13 @@
 import { WasteCategory } from "./profile";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-// Get a free key at https://aistudio.google.com/apikey
-// For a hackathon, hardcoding is OK. For production, move this to an
-// environment variable / backend proxy so the key isn't shipped in the app.
-
-const GEMINI_API_KEY = "AIzaSyDiN44XC6aEa3BmprLblr10T0k2aN0Dkkw";
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.0-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
 export type UpcyclingIdea = {
-  title: string; // e.g. "Flower Vase"
-  description: string; // 1 short sentence
+  title: string;
+  description: string;
 };
-
-// ─── Local fallback ───────────────────────────────────────────────────────────
-// Used if the API key is missing, the network fails, or the response is invalid.
-// The app should NEVER show an error to the user just because AI is unavailable.
 
 const FALLBACK_IDEAS: Record<WasteCategory, UpcyclingIdea[]> = {
   plastic: [
@@ -123,18 +112,14 @@ const FALLBACK_IDEAS: Record<WasteCategory, UpcyclingIdea[]> = {
   ],
 };
 
-// ─── Main API ─────────────────────────────────────────────────────────────────
-
 export async function getUpcyclingIdeas(
   objectLabel: string,
   category: WasteCategory,
 ): Promise<UpcyclingIdea[]> {
-  // No key configured → use fallback silently
-  if (
-    !GEMINI_API_KEY ||
-    GEMINI_API_KEY === "AIzaSyDiN44XC6aEa3BmprLblr10T0k2aN0Dkkw"
-  ) {
-    return FALLBACK_IDEAS[category];
+  const fallbackIdeas = FALLBACK_IDEAS[category] ?? FALLBACK_IDEAS.unknown;
+
+  if (!GEMINI_API_KEY) {
+    return fallbackIdeas;
   }
 
   try {
@@ -151,49 +136,52 @@ export async function getUpcyclingIdeas(
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.9,
+          temperature: 0.7,
           maxOutputTokens: 512,
           responseMimeType: "application/json",
         },
       }),
     });
 
+    if (!response.ok) {
+      console.warn("Gemini API error:", response.status, response.statusText);
+      return fallbackIdeas;
+    }
+
     const data = await response.json();
 
     if (data.error) {
       console.warn("Gemini API error:", data.error.message);
-      return FALLBACK_IDEAS[category];
+      return fallbackIdeas;
     }
 
     const text: string | undefined =
       data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!text) return FALLBACK_IDEAS[category];
+    if (!text) return fallbackIdeas;
 
     const ideas = parseIdeas(text);
-    return ideas.length > 0 ? ideas : FALLBACK_IDEAS[category];
-  } catch (e) {
-    console.warn("Upcycling AI failed, using fallback:", e);
-    return FALLBACK_IDEAS[category];
+    return ideas.length > 0 ? ideas : fallbackIdeas;
+  } catch (error) {
+    console.warn("Upcycling AI failed, using fallback:", error);
+    return fallbackIdeas;
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function parseIdeas(text: string): UpcyclingIdea[] {
   try {
-    // Strip markdown code fences if the model added them anyway
     const clean = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
     if (!Array.isArray(parsed)) return [];
 
     return parsed
-      .filter((it) => it && typeof it.title === "string")
+      .filter((item) => item && typeof item.title === "string")
       .slice(0, 3)
-      .map((it) => ({
-        title: String(it.title),
-        description: String(it.description ?? ""),
-      }));
+      .map((item) => ({
+        title: String(item.title).trim(),
+        description: String(item.description ?? "").trim(),
+      }))
+      .filter((item) => item.title.length > 0);
   } catch {
     return [];
   }

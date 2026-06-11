@@ -1,9 +1,9 @@
 import { WasteCategory } from "./profile";
 
 export function formatDate(timestamp: number): string {
-  const d = new Date(timestamp);
+  const date = new Date(timestamp);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
+  const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   const diffH = Math.floor(diffMin / 60);
   const diffD = Math.floor(diffH / 24);
@@ -14,7 +14,7 @@ export function formatDate(timestamp: number): string {
   if (diffD === 1) return "yesterday";
   if (diffD < 7) return `${diffD}d ago`;
 
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 type CategoryMeta = { label: string; emoji: string; color: string };
@@ -27,5 +27,5 @@ export const CATEGORY_META: Record<WasteCategory, CategoryMeta> = {
   metal: { label: "Metal", emoji: "🥫", color: "#6b7280" },
   food: { label: "Food", emoji: "🥕", color: "#22c55e" },
   electronics: { label: "Electronics", emoji: "📱", color: "#f43f5e" },
-  unknown: { label: "Other", emoji: "❓", color: "#8e8e93" },
+  unknown: { label: "Other", emoji: "?", color: "#8e8e93" },
 };

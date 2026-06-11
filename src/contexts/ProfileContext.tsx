@@ -14,10 +14,15 @@ import {
   calcPointsForScan,
   emptyProfile,
   getLevelForPoints,
-  getProgressToNextLevel
+  getProgressToNextLevel,
 } from "@/services/profile";
 
-// ─── Context shape ────────────────────────────────────────────────────────────
+type RecordScanResult = {
+  pointsEarned: number;
+  scanId: string;
+  awarded: boolean;
+  reason: string;
+};
 
 type ProfileContextType = {
   isLoading: boolean;
@@ -31,15 +36,12 @@ type ProfileContextType = {
   level: ReturnType<typeof getLevelForPoints>;
   levelProgress: number;
   completeOnboarding: (name: string, characterIndex: number) => Promise<void>;
-  recordScan: (
-    scan: Omit<ScanRecord, "id" | "timestamp">,
-  ) => Promise<{ pointsEarned: number; awarded: boolean; reason: string }>;
+  recordScan: (scan: Omit<ScanRecord, "id" | "timestamp">) => Promise<RecordScanResult>;
+  updateScanUpcyclingIdeas: (scanId: string, ideas: string[]) => Promise<void>;
   resetProfile: () => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(emptyProfile());
@@ -77,52 +79,56 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     async (scan: Omit<ScanRecord, "id" | "timestamp">) => {
       const prev = profileRef.current;
       const today = new Date().toISOString().slice(0, 10);
-
+      const nextStreak = prev.lastScanDate === today ? prev.scanStreak + 1 : 1;
       const result = calcPointsForScan(
         scan.category,
         scan.objectLabel,
         prev.categoryStats,
-        // Streak only advances when points are actually awarded; compute below
-        prev.lastScanDate === today ? prev.scanStreak + 1 : 1,
+        nextStreak,
         prev.lastScanLabel,
       );
 
-      // Streak only counts valid (awarded) scans on the same day
-      const newStreak = result.awarded
-        ? prev.lastScanDate === today
-          ? prev.scanStreak + 1
-          : 1
-        : prev.scanStreak;
-
+      const newStreak = result.awarded ? nextStreak : prev.scanStreak;
       const record: ScanRecord = {
         ...scan,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         timestamp: Date.now(),
       };
 
-      await updateProfile((p) => ({
-        ...p,
-        ecoPoints: p.ecoPoints + result.points,
-        // totalScans counts every scan attempt that was recorded
-        totalScans: p.totalScans + 1,
+      await updateProfile((current) => ({
+        ...current,
+        ecoPoints: current.ecoPoints + result.points,
+        totalScans: current.totalScans + 1,
         scanStreak: newStreak,
         lastScanDate: today,
         lastScanLabel: scan.objectLabel,
-        // Only count category stats for awarded scans
         categoryStats: result.awarded
           ? {
-              ...p.categoryStats,
-              [scan.category]: p.categoryStats[scan.category] + 1,
+              ...current.categoryStats,
+              [scan.category]: current.categoryStats[scan.category] + 1,
             }
-          : p.categoryStats,
-        scanHistory: [record, ...p.scanHistory].slice(0, 100),
+          : current.categoryStats,
+        scanHistory: [record, ...current.scanHistory].slice(0, 100),
       }));
 
       return {
         pointsEarned: result.points,
+        scanId: record.id,
         awarded: result.awarded,
         reason: result.reason,
       };
+    },
+    [updateProfile],
+  );
+
+  const updateScanUpcyclingIdeas = useCallback(
+    async (scanId: string, ideas: string[]) => {
+      await updateProfile((current) => ({
+        ...current,
+        scanHistory: current.scanHistory.map((scan) =>
+          scan.id === scanId ? { ...scan, upcyclingIdeas: ideas } : scan,
+        ),
+      }));
     },
     [updateProfile],
   );
@@ -152,6 +158,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         levelProgress,
         completeOnboarding,
         recordScan,
+        updateScanUpcyclingIdeas,
         resetProfile,
       }}
     >

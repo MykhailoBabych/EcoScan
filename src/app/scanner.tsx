@@ -14,8 +14,6 @@ import {
   View,
 } from "react-native";
 
-// ─── Category mapping ─────────────────────────────────────────────────────────
-
 type CategoryDef = {
   category: WasteCategory;
   keywords: string[];
@@ -128,7 +126,7 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
   for (const label of labels) {
     const desc = label.description.toLowerCase();
     for (const cat of RECYCLING_CATEGORIES) {
-      if (cat.keywords.some((kw) => desc.includes(kw))) {
+      if (cat.keywords.some((keyword) => desc.includes(keyword))) {
         return {
           label: label.description,
           advice: cat.advice,
@@ -137,9 +135,10 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
       }
     }
   }
+
   for (const label of labels) {
     const desc = label.description.toLowerCase();
-    if (!IGNORED_WORDS.some((iw) => desc.includes(iw))) {
+    if (!IGNORED_WORDS.some((word) => desc.includes(word))) {
       return {
         label: label.description,
         advice:
@@ -148,14 +147,13 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
       };
     }
   }
+
   return {
     label: labels[0]?.description || "Unknown Object",
     advice: "Item not recognized. When in doubt, throw it out!",
     category: "unknown",
   };
 };
-
-// ─── Result type ──────────────────────────────────────────────────────────────
 
 type ScanResult = EcoAdvice & {
   pointsEarned: number;
@@ -167,7 +165,8 @@ type ScanResult = EcoAdvice & {
 
 type ResultTab = "recycle" | "upcycle";
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const ideaToProfileText = (idea: UpcyclingIdea) =>
+  idea.description ? `${idea.title}: ${idea.description}` : idea.title;
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -178,7 +177,7 @@ export default function ScannerScreen() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<ResultTab>("recycle");
 
-  const { recordScan } = useProfile();
+  const { recordScan, updateScanUpcyclingIdeas } = useProfile();
 
   if (!permission) return <View style={styles.container} />;
 
@@ -194,10 +193,11 @@ export default function ScannerScreen() {
   }
 
   const toggleCameraFacing = () =>
-    setFacing((cur) => (cur === "back" ? "front" : "back"));
+    setFacing((current) => (current === "back" ? "front" : "back"));
 
   const takePhotoAndAnalyze = async () => {
     if (!cameraRef.current) return;
+
     try {
       setAnalyzing(true);
       setResult(null);
@@ -216,16 +216,13 @@ export default function ScannerScreen() {
       }
 
       const advice = getEcoAdvice(labels);
-
-      // Record scan & award points (may be 0 for unknown/duplicate)
-      const { pointsEarned, awarded, reason } = await recordScan({
+      const { pointsEarned, scanId, awarded, reason } = await recordScan({
         objectLabel: advice.label,
         category: advice.category,
         recyclingAdvice: advice.advice,
         upcyclingIdeas: [],
       });
 
-      // Show result immediately with upcycling loading
       setResult({
         ...advice,
         pointsEarned,
@@ -235,14 +232,21 @@ export default function ScannerScreen() {
         upcyclingLoading: true,
       });
 
-      // Fetch upcycling ideas in the background (non-blocking)
-      getUpcyclingIdeas(advice.label, advice.category).then((ideas) => {
-        setResult((prev) =>
-          prev
-            ? { ...prev, upcyclingIdeas: ideas, upcyclingLoading: false }
-            : prev,
-        );
-      });
+      getUpcyclingIdeas(advice.label, advice.category)
+        .then(async (ideas) => {
+          await updateScanUpcyclingIdeas(scanId, ideas.map(ideaToProfileText));
+          setResult((prev) =>
+            prev
+              ? { ...prev, upcyclingIdeas: ideas, upcyclingLoading: false }
+              : prev,
+          );
+        })
+        .catch((error) => {
+          console.warn("Upcycling ideas failed:", error);
+          setResult((prev) =>
+            prev ? { ...prev, upcyclingLoading: false } : prev,
+          );
+        });
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to analyze image.");
@@ -269,13 +273,15 @@ export default function ScannerScreen() {
         },
       );
       const data = await response.json();
+
       if (data.error) {
         Alert.alert("API Error", data.error.message || "Vision API error.");
         return null;
       }
+
       return data.responses?.[0]?.labelAnnotations ?? [];
-    } catch (e) {
-      console.error("Fetch error:", e);
+    } catch (error) {
+      console.error("Fetch error:", error);
       return null;
     }
   };
@@ -318,20 +324,19 @@ export default function ScannerScreen() {
           <Text style={styles.textSmall}>{(zoom * 100).toFixed(0)}%</Text>
           <TouchableOpacity
             style={[styles.iconButton, { marginTop: 5 }]}
-            onPress={() => setZoom((z) => Math.min(z + 0.05, 1))}
+            onPress={() => setZoom((current) => Math.min(current + 0.05, 1))}
           >
             <Text style={styles.textSmall}>Zoom +</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.iconButton, { marginTop: 10 }]}
-            onPress={() => setZoom((z) => Math.max(z - 0.05, 0))}
+            onPress={() => setZoom((current) => Math.max(current - 0.05, 0))}
           >
             <Text style={styles.textSmall}>Zoom -</Text>
           </TouchableOpacity>
         </View>
       </CameraView>
 
-      {/* Result card */}
       {result && (
         <View style={styles.resultContainer}>
           <Text style={styles.resultTitle}>{result.label}</Text>
@@ -339,24 +344,23 @@ export default function ScannerScreen() {
           {result.awarded ? (
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
-                +{result.pointsEarned} Eco Points 🌿
+                +{result.pointsEarned} Eco Points
               </Text>
             </View>
           ) : result.reason === "duplicate" ? (
             <View style={styles.infoBadge}>
               <Text style={styles.infoBadgeText}>
-                Already scanned — no points 🔁
+                Already scanned - no points
               </Text>
             </View>
           ) : (
             <View style={styles.infoBadge}>
               <Text style={styles.infoBadgeText}>
-                Not recognized — no points ❓
+                Not recognized - no points
               </Text>
             </View>
           )}
 
-          {/* Tabs */}
           <View style={styles.tabRow}>
             <TouchableOpacity
               style={[styles.tabButton, tab === "recycle" && styles.tabActive]}
@@ -368,7 +372,7 @@ export default function ScannerScreen() {
                   tab === "recycle" && styles.tabTextActive,
                 ]}
               >
-                ♻️ Recycle
+                Recycle
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -384,12 +388,11 @@ export default function ScannerScreen() {
                   tab === "upcycle" && styles.tabTextActive,
                 ]}
               >
-                ✨ Upcycle
+                Upcycle
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Tab content */}
           <ScrollView
             style={styles.tabContent}
             contentContainerStyle={{ paddingBottom: 4 }}
@@ -399,12 +402,16 @@ export default function ScannerScreen() {
             ) : result.upcyclingLoading ? (
               <View style={styles.upcycleLoading}>
                 <ActivityIndicator color="#8b5cf6" />
-                <Text style={styles.upcycleLoadingText}>Generating ideas…</Text>
+                <Text style={styles.upcycleLoadingText}>Generating ideas...</Text>
               </View>
+            ) : result.upcyclingIdeas.length === 0 ? (
+              <Text style={styles.resultAdvice}>
+                No upcycling ideas available yet.
+              </Text>
             ) : (
-              result.upcyclingIdeas.map((idea, i) => (
-                <View key={i} style={styles.ideaRow}>
-                  <Text style={styles.ideaBullet}>✨</Text>
+              result.upcyclingIdeas.map((idea, index) => (
+                <View key={`${idea.title}-${index}`} style={styles.ideaRow}>
+                  <Text style={styles.ideaBullet}>+</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.ideaTitle}>{idea.title}</Text>
                     {!!idea.description && (
@@ -427,8 +434,6 @@ export default function ScannerScreen() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
@@ -481,7 +486,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { backgroundColor: "#1E7E34", opacity: 0.7 },
   text: { fontSize: 18, fontWeight: "bold", color: "white" },
   textSmall: { fontSize: 14, fontWeight: "bold", color: "white" },
-
   resultContainer: {
     position: "absolute",
     bottom: 90,
@@ -505,7 +509,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "center",
   },
-
   pointsBadge: {
     backgroundColor: "#e8f8ef",
     borderRadius: 20,
@@ -514,7 +517,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pointsBadgeText: { color: "#1a7f3c", fontWeight: "700", fontSize: 15 },
-
   infoBadge: {
     backgroundColor: "#f0f0f0",
     borderRadius: 20,
@@ -523,7 +525,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoBadgeText: { color: "#666", fontWeight: "600", fontSize: 14 },
-
   tabRow: {
     flexDirection: "row",
     backgroundColor: "#f0f0f0",
@@ -542,7 +543,6 @@ const styles = StyleSheet.create({
   tabActiveUpcycle: { backgroundColor: "#8b5cf6" },
   tabText: { fontSize: 15, fontWeight: "600", color: "#666" },
   tabTextActive: { color: "#fff" },
-
   tabContent: { width: "100%", maxHeight: 160, marginBottom: 12 },
   resultAdvice: {
     fontSize: 16,
@@ -550,10 +550,8 @@ const styles = StyleSheet.create({
     color: "#333",
     paddingVertical: 8,
   },
-
   upcycleLoading: { alignItems: "center", paddingVertical: 24, gap: 8 },
   upcycleLoadingText: { color: "#8b5cf6", fontSize: 14 },
-
   ideaRow: {
     flexDirection: "row",
     gap: 10,
@@ -563,7 +561,6 @@ const styles = StyleSheet.create({
   ideaBullet: { fontSize: 16 },
   ideaTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
   ideaDesc: { fontSize: 13, color: "#666", marginTop: 2, lineHeight: 18 },
-
   closeButton: {
     backgroundColor: "#007bff",
     paddingVertical: 10,

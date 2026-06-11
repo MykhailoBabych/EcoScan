@@ -1,7 +1,5 @@
 import { Storage, STORAGE_KEYS } from "./storage";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export type WasteCategory =
   | "plastic"
   | "glass"
@@ -28,13 +26,12 @@ export type UserProfile = {
   characterIndex: number;
   ecoPoints: number;
   totalScans: number;
-  scanStreak: number; // consecutive scans for bonus tracking
-  lastScanDate: string | null; // ISO date string YYYY-MM-DD
+  scanStreak: number;
+  lastScanDate: string | null;
+  lastScanLabel: string | null;
   categoryStats: CategoryStats;
   scanHistory: ScanRecord[];
 };
-
-// ─── Level System ─────────────────────────────────────────────────────────────
 
 export type Level = {
   level: number;
@@ -52,7 +49,7 @@ export const LEVELS: Level[] = [
 ];
 
 export function getLevelForPoints(points: number): Level {
-  return [...LEVELS].reverse().find((l) => points >= l.minPoints) ?? LEVELS[0];
+  return [...LEVELS].reverse().find((level) => points >= level.minPoints) ?? LEVELS[0];
 }
 
 export function getProgressToNextLevel(points: number): number {
@@ -63,26 +60,43 @@ export function getProgressToNextLevel(points: number): number {
   return Math.min(progress / range, 1);
 }
 
-// ─── Points Logic ─────────────────────────────────────────────────────────────
-
 const BASE_SCAN_POINTS = 10;
 const NEW_CATEGORY_BONUS = 25;
 const STREAK_BONUS = 15;
 const STREAK_THRESHOLD = 3;
 
+export type ScanPointsResult = {
+  points: number;
+  awarded: boolean;
+  reason: "awarded" | "duplicate" | "unknown";
+};
+
 export function calcPointsForScan(
   category: WasteCategory,
+  objectLabel: string,
   categoryStats: CategoryStats,
   scanStreak: number,
-): number {
+  lastScanLabel?: string | null,
+): ScanPointsResult {
+  if (category === "unknown") {
+    return { points: 0, awarded: false, reason: "unknown" };
+  }
+
+  const normalizedLabel = objectLabel.trim().toLowerCase();
+  const normalizedPrevious = lastScanLabel?.trim().toLowerCase();
+
+  if (normalizedLabel && normalizedPrevious === normalizedLabel) {
+    return { points: 0, awarded: false, reason: "duplicate" };
+  }
+
   let points = BASE_SCAN_POINTS;
   if (categoryStats[category] === 0) points += NEW_CATEGORY_BONUS;
-  if (scanStreak > 0 && scanStreak % STREAK_THRESHOLD === 0)
+  if (scanStreak > 0 && scanStreak % STREAK_THRESHOLD === 0) {
     points += STREAK_BONUS;
-  return points;
-}
+  }
 
-// ─── Default values ───────────────────────────────────────────────────────────
+  return { points, awarded: true, reason: "awarded" };
+}
 
 export function emptyProfile(): UserProfile {
   return {
@@ -92,6 +106,7 @@ export function emptyProfile(): UserProfile {
     totalScans: 0,
     scanStreak: 0,
     lastScanDate: null,
+    lastScanLabel: null,
     categoryStats: {
       plastic: 0,
       glass: 0,
@@ -106,15 +121,28 @@ export function emptyProfile(): UserProfile {
   };
 }
 
-// ─── Persistence ──────────────────────────────────────────────────────────────
+function normalizeProfile(profile: UserProfile): UserProfile {
+  const fallback = emptyProfile();
+
+  return {
+    ...fallback,
+    ...profile,
+    lastScanLabel: profile.lastScanLabel ?? null,
+    categoryStats: {
+      ...fallback.categoryStats,
+      ...profile.categoryStats,
+    },
+    scanHistory: profile.scanHistory ?? [],
+  };
+}
 
 export const ProfileService = {
   async load(): Promise<UserProfile | null> {
-    return Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+    const profile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
+    return profile ? normalizeProfile(profile) : null;
   },
 
   async save(profile: UserProfile): Promise<boolean> {
-    // Keep only the last 100 scans in storage
     const toSave: UserProfile = {
       ...profile,
       scanHistory: profile.scanHistory.slice(0, 100),

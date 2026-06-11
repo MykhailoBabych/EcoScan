@@ -1,5 +1,6 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
+import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
@@ -16,6 +17,7 @@ export default function SettingsScreen() {
   const [view, setView] = useState("main");
   const { resetProfile } = useProfile();
   const theme = useTheme();
+  const router = useRouter();
 
   const handleResetProfile = () => {
     Alert.alert(
@@ -146,23 +148,13 @@ export default function SettingsScreen() {
         </Text>
       </View>
       <ScrollView style={styles.scrollView}>
-        <View
-          style={[styles.section, { backgroundColor: theme.backgroundElement }]}
-        >
-          <TouchableOpacity style={styles.row} onPress={() => setView("about")}>
+        <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+          <TouchableOpacity style={styles.row} onPress={() => setView('about')}>
             <View style={styles.rowLeft}>
-              <View
-                style={[styles.iconContainer, { backgroundColor: "#0a84ff" }]}
-              >
-                <SymbolView
-                  name="info.circle.fill"
-                  size={20}
-                  tintColor="#fff"
-                />
+              <View style={[styles.iconContainer, { backgroundColor: '#0a84ff' }]}>
+                <SymbolView name="info.circle.fill" size={20} tintColor="#fff" />
               </View>
-              <Text style={[styles.rowText, { color: theme.text }]}>
-                About Us
-              </Text>
+              <Text style={[styles.rowText, { color: theme.text }]}>About Us</Text>
             </View>
             <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
           </TouchableOpacity>

@@ -1,4 +1,4 @@
-﻿import { Colors } from "@/constants/theme";
+import { Colors } from "@/constants/theme";
 import { Tabs } from "expo-router";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
 import {
@@ -6,12 +6,9 @@ import {
   Text,
   TouchableOpacity,
   useColorScheme,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// ─── Tab definitions ──────────────────────────────────────────────────────────
-// `center: true` marks the elevated round Scan button.
 
 type TabDef = {
   name: string;
@@ -22,15 +19,13 @@ type TabDef = {
 
 const TABS: TabDef[] = [
   { name: "map", label: "Map", icon: "map.fill" },
-  { name: "explore", label: "Explore", icon: "book.fill" },
+  { name: "activity", label: "Activity", icon: "list.bullet" },
   { name: "scanner", label: "Scan", icon: "camera.fill", center: true },
   { name: "profile", label: "Profile", icon: "person.fill" },
   { name: "settings", label: "Settings", icon: "gearshape.fill" },
 ];
 
 const ACCENT = "#28a745";
-
-// ─── Custom tab bar ───────────────────────────────────────────────────────────
 
 function CustomTabBar({ state, navigation }: any) {
   const scheme = useColorScheme() ?? "light";
@@ -50,7 +45,7 @@ function CustomTabBar({ state, navigation }: any) {
       ]}
     >
       {state.routes.map((route: any, index: number) => {
-        const tab = TABS.find((t) => t.name === route.name);
+        const tab = TABS.find((item) => item.name === route.name);
         if (!tab) return null;
 
         const isFocused = state.index === index;
@@ -61,12 +56,12 @@ function CustomTabBar({ state, navigation }: any) {
             target: route.key,
             canPreventDefault: true,
           });
+
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
           }
         };
 
-        // ── Center elevated Scan button ──────────────────────────────────────
         if (tab.center) {
           return (
             <View key={route.key} style={styles.centerWrapper}>
@@ -92,7 +87,6 @@ function CustomTabBar({ state, navigation }: any) {
           );
         }
 
-        // ── Regular tab ──────────────────────────────────────────────────────
         return (
           <TouchableOpacity
             key={route.key}
@@ -120,30 +114,23 @@ function CustomTabBar({ state, navigation }: any) {
   );
 }
 
-// ─── Tabs navigator ───────────────────────────────────────────────────────────
-
 export default function AppTabs() {
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      {/* Order here must match desired tab order */}
       <Tabs.Screen name="map" />
-      <Tabs.Screen name="explore" />
+      <Tabs.Screen name="activity" />
       <Tabs.Screen name="scanner" />
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="settings" />
-
-      {/* Hidden routes (exist as files but not shown as tabs) */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="tab2" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="onboarding" options={{ href: null }} />
     </Tabs>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   bar: {
@@ -163,7 +150,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
   },
-  // Center button
   centerWrapper: {
     flex: 1,
     alignItems: "center",
@@ -176,9 +162,8 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -28, // lift above the bar
+    marginTop: -28,
     borderWidth: 4,
-    // Shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
