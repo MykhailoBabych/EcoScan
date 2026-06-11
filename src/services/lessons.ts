@@ -150,20 +150,33 @@ export const StudentLessonsService = {
 
       if (error || !data) return (await Storage.get<StudentLesson[]>(STUDENT_LESSONS_KEY)) ?? [];
 
+      const cached = (await Storage.get<StudentLesson[]>(STUDENT_LESSONS_KEY)) ?? [];
+      const completedById = new Map(
+        cached
+          .filter((lesson) => lesson.status === 'completed')
+          .map((lesson) => [lesson.id, lesson] as const),
+      );
+
       const mine: StudentLesson[] = data
         .filter((row: any) => row.lessons)
-        .map((row: any) => ({
-          id: row.id,
-          lessonId: row.lessons.id,
-          topic: row.lessons.topic,
-          assignment: row.lessons.assignment,
-          scanTarget: row.lessons.scan_target,
-          xpReward: row.lessons.xp_reward,
-          pointsReward: row.lessons.points_reward,
-          status: row.status,
-          acceptedAt: new Date(row.accepted_at).getTime(),
-          completedAt: row.completed_at ? new Date(row.completed_at).getTime() : null,
-        }));
+        .map((row: any) => {
+          const cachedCompleted = completedById.get(row.id);
+
+          return {
+            id: row.id,
+            lessonId: row.lessons.id,
+            topic: row.lessons.topic,
+            assignment: row.lessons.assignment,
+            scanTarget: row.lessons.scan_target,
+            xpReward: row.lessons.xp_reward,
+            pointsReward: row.lessons.points_reward,
+            status: cachedCompleted?.status ?? row.status,
+            acceptedAt: new Date(row.accepted_at).getTime(),
+            completedAt:
+              cachedCompleted?.completedAt ??
+              (row.completed_at ? new Date(row.completed_at).getTime() : null),
+          };
+        });
 
       await Storage.set(STUDENT_LESSONS_KEY, mine);
       return mine;
@@ -188,48 +201,65 @@ export const StudentLessonsService = {
   },
 
   /**
-   * Called from scanner when a scanned label matches a lesson's scan_target.
-   * Returns the completed lesson so caller can award XP/points.
+   * Called from scanner when scanned labels match lesson scan targets.
+   * Returns every completed lesson so caller can award XP/points.
    */
-  async tryComplete(scannedLabel: string): Promise<StudentLesson | null> {
+  async tryCompleteAll(scannedLabels: string | string[]): Promise<StudentLesson[]> {
     try {
       const mine = await StudentLessonsService.loadMine();
       const active = mine.filter((l) => l.status === 'active');
 
-      const labelLower = scannedLabel.toLowerCase();
-      const matched = active.find((l) =>
-        l.scanTarget
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .some((kw) => kw.length > 2 && labelLower.includes(kw))
+      const labelText = (Array.isArray(scannedLabels) ? scannedLabels : [scannedLabels])
+        .join(' ')
+        .toLowerCase();
+      const matched = active.filter((l) =>
+        getScanTargetKeywords(l.scanTarget).some((kw) => labelText.includes(kw))
       );
 
-      if (!matched) return null;
+      if (matched.length === 0) return [];
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) return [];
 
-      await supabase
+      const completedAtIso = new Date().toISOString();
+      const completedAtMs = Date.now();
+      const ids = matched.map((lesson) => lesson.id);
+
+      const { error } = await supabase
         .from('student_lessons')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', matched.id);
+        .update({ status: 'completed', completed_at: completedAtIso })
+        .eq('student_id', user.id)
+        .in('id', ids);
+
+      if (error) {
+        console.warn('[StudentLessonsService] complete update failed:', error.message);
+      }
 
       // Update local cache
       const cached = (await Storage.get<StudentLesson[]>(STUDENT_LESSONS_KEY)) ?? [];
       await Storage.set(
         STUDENT_LESSONS_KEY,
         cached.map((l) =>
-          l.id === matched.id
-            ? { ...l, status: 'completed', completedAt: Date.now() }
+          ids.includes(l.id)
+            ? { ...l, status: 'completed', completedAt: completedAtMs }
             : l
         )
       );
 
-      return { ...matched, status: 'completed', completedAt: Date.now() };
+      return matched.map((lesson) => ({
+        ...lesson,
+        status: 'completed',
+        completedAt: completedAtMs,
+      }));
     } catch (e) {
-      console.warn('[StudentLessonsService] tryComplete failed:', e);
-      return null;
+      console.warn('[StudentLessonsService] tryCompleteAll failed:', e);
+      return [];
     }
+  },
+
+  async tryComplete(scannedLabel: string): Promise<StudentLesson | null> {
+    const completed = await StudentLessonsService.tryCompleteAll(scannedLabel);
+    return completed[0] ?? null;
   },
 };
 
@@ -273,4 +303,12 @@ function rowToLesson(row: any): Lesson {
     pointsReward: row.points_reward,
     createdAt: new Date(row.created_at).getTime(),
   };
+}
+
+function getScanTargetKeywords(scanTarget: string) {
+  return scanTarget
+    .toLowerCase()
+    .split(/[\s,;/|]+/)
+    .map((kw) => kw.trim())
+    .filter((kw) => kw.length > 2);
 }

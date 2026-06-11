@@ -162,11 +162,11 @@ type ScanResult = EcoAdvice & {
   reason: string;
   upcyclingIdeas: UpcyclingIdea[];
   upcyclingLoading: boolean;
-  lessonCompleted?: {
+  completedLessons: {
     topic: string;
     xpReward: number;
     pointsReward: number;
-  };
+  }[];
 };
 
 type ResultTab = "recycle" | "upcycle";
@@ -182,6 +182,7 @@ export default function ScannerScreen() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<ResultTab>("recycle");
+  const [completedLessonIndex, setCompletedLessonIndex] = useState(0);
 
   const { recordScan, updateScanUpcyclingIdeas, schoolRole, awardPoints } = useProfile();
 
@@ -208,6 +209,7 @@ export default function ScannerScreen() {
       setAnalyzing(true);
       setResult(null);
       setTab("recycle");
+      setCompletedLessonIndex(0);
 
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
@@ -228,17 +230,23 @@ export default function ScannerScreen() {
         recyclingAdvice: advice.advice,
         upcyclingIdeas: [],
       });
-      let lessonCompleted: ScanResult["lessonCompleted"];
+      let completedLessons: ScanResult["completedLessons"] = [];
 
       if (schoolRole === "student") {
-        const completed = await StudentLessonsService.tryComplete(advice.label);
-        if (completed) {
-          lessonCompleted = {
-            topic: completed.topic,
-            xpReward: completed.xpReward,
-            pointsReward: completed.pointsReward,
-          };
-          await awardPoints(completed.xpReward + completed.pointsReward);
+        const completed = await StudentLessonsService.tryCompleteAll(
+          labels.map((label: any) => label.description),
+        );
+        if (completed.length > 0) {
+          completedLessons = completed.map((lesson) => ({
+            topic: lesson.topic,
+            xpReward: lesson.xpReward,
+            pointsReward: lesson.pointsReward,
+          }));
+          const reward = completed.reduce(
+            (sum, lesson) => sum + lesson.xpReward + lesson.pointsReward,
+            0,
+          );
+          await awardPoints(reward);
         }
       }
 
@@ -247,7 +255,7 @@ export default function ScannerScreen() {
         pointsEarned,
         awarded,
         reason,
-        lessonCompleted,
+        completedLessons,
         upcyclingIdeas: [],
         upcyclingLoading: true,
       });
@@ -413,19 +421,6 @@ export default function ScannerScreen() {
             </TouchableOpacity>
           </View>
 
-          {result.lessonCompleted ? (
-            <View style={styles.lessonBadge}>
-              <Text style={styles.lessonBadgeTitle}>Lesson Complete</Text>
-              <Text style={styles.lessonBadgeName}>
-                {result.lessonCompleted.topic}
-              </Text>
-              <Text style={styles.lessonBadgeReward}>
-                +{result.lessonCompleted.xpReward} XP · +
-                {result.lessonCompleted.pointsReward} pts
-              </Text>
-            </View>
-          ) : null}
-
           <ScrollView
             style={styles.tabContent}
             contentContainerStyle={{ paddingBottom: 4 }}
@@ -455,6 +450,50 @@ export default function ScannerScreen() {
               ))
             )}
           </ScrollView>
+
+          {result.completedLessons.length > 0 ? (
+            <View style={styles.lessonBadge}>
+              <Text style={styles.lessonBadgeTitle}>
+                Lesson Complete
+                {result.completedLessons.length > 1
+                  ? ` ${completedLessonIndex + 1}/${result.completedLessons.length}`
+                  : ""}
+              </Text>
+              <Text style={styles.lessonBadgeName}>
+                {result.completedLessons[completedLessonIndex].topic}
+              </Text>
+              <Text style={styles.lessonBadgeReward}>
+                +{result.completedLessons[completedLessonIndex].xpReward} XP / +
+                {result.completedLessons[completedLessonIndex].pointsReward} pts
+              </Text>
+              {result.completedLessons.length > 1 ? (
+                <View style={styles.lessonPager}>
+                  <TouchableOpacity
+                    style={styles.lessonPagerButton}
+                    onPress={() =>
+                      setCompletedLessonIndex((index) =>
+                        index === 0
+                          ? result.completedLessons.length - 1
+                          : index - 1,
+                      )
+                    }
+                  >
+                    <Text style={styles.lessonPagerText}>Prev</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.lessonPagerButton}
+                    onPress={() =>
+                      setCompletedLessonIndex(
+                        (index) => (index + 1) % result.completedLessons.length,
+                      )
+                    }
+                  >
+                    <Text style={styles.lessonPagerText}>Next</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={styles.closeButton}
@@ -529,7 +568,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 15,
     alignItems: "center",
-    maxHeight: 360,
+    maxHeight: 430,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -563,7 +602,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#28a74544",
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 14,
     alignItems: "center",
     width: "100%",
@@ -581,6 +620,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1a7f3c",
     marginTop: 2,
+  },
+  lessonPager: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+  lessonPagerButton: {
+    backgroundColor: "#28a745",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  lessonPagerText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   tabRow: {
     flexDirection: "row",
@@ -600,7 +655,12 @@ const styles = StyleSheet.create({
   tabActiveUpcycle: { backgroundColor: "#8b5cf6" },
   tabText: { fontSize: 15, fontWeight: "600", color: "#666" },
   tabTextActive: { color: "#fff" },
-  tabContent: { width: "100%", maxHeight: 160, marginBottom: 12 },
+  tabContent: {
+    width: "100%",
+    minHeight: 78,
+    maxHeight: 150,
+    marginBottom: 12,
+  },
   resultAdvice: {
     fontSize: 16,
     textAlign: "center",
