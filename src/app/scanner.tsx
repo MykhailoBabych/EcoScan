@@ -1,4 +1,4 @@
-import {
+﻿import {
   View, Text, StyleSheet, Button,
   TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
@@ -290,12 +290,28 @@ export function ScannerScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} zoom={zoom} ref={cameraRef}>
+      <CameraView style={styles.camera} facing={facing} zoom={zoom} ref={cameraRef} />
+
+      {/* Controls overlay — absolute positioned on top of camera */}
+      <View style={styles.overlay} pointerEvents="box-none">
 
         {/* Flip button */}
         <View style={styles.topControls}>
           <TouchableOpacity style={styles.iconButton} onPress={toggleCameraFacing}>
             <Text style={styles.textSmall}>Flip</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Zoom controls */}
+        <View style={styles.sideControls} pointerEvents="box-none">
+          <Text style={styles.textSmall}>{(zoom * 100).toFixed(0)}%</Text>
+          <TouchableOpacity style={[styles.iconButton, { marginTop: 5 }]}
+            onPress={() => setZoom((z) => Math.min(z + 0.05, 1))}>
+            <Text style={styles.textSmall}>Zoom +</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.iconButton, { marginTop: 10 }]}
+            onPress={() => setZoom((z) => Math.max(z - 0.05, 0))}>
+            <Text style={styles.textSmall}>Zoom -</Text>
           </TouchableOpacity>
         </View>
 
@@ -312,20 +328,7 @@ export function ScannerScreen() {
             }
           </TouchableOpacity>
         </View>
-
-        {/* Zoom controls */}
-        <View style={[styles.sideControls, { zIndex: 100 }]} pointerEvents="box-none">
-          <Text style={styles.textSmall}>{(zoom * 100).toFixed(0)}%</Text>
-          <TouchableOpacity style={[styles.iconButton, { marginTop: 5 }]}
-            onPress={() => setZoom((z) => Math.min(z + 0.05, 1))}>
-            <Text style={styles.textSmall}>Zoom +</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, { marginTop: 10 }]}
-            onPress={() => setZoom((z) => Math.max(z - 0.05, 0))}>
-            <Text style={styles.textSmall}>Zoom -</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      </View>
 
       {/* Result card */}
       {result && (
@@ -355,6 +358,7 @@ export function ScannerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   containerCentered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
   message: { textAlign: 'center', paddingBottom: 15, color: '#fff', fontSize: 18 },
   camera: { flex: 1 },

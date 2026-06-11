@@ -6,13 +6,13 @@ import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export function SettingsScreen() {
   return (

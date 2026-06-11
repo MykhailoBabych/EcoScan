@@ -4,13 +4,13 @@ import { useTheme } from "@/hooks/use-theme";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
 import { useState } from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // achievment object
 export type Achievement = {
