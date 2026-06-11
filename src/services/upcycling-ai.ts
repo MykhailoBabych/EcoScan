@@ -96,6 +96,104 @@ const FALLBACK_IDEAS: Record<WasteCategory, UpcyclingIdea[]> = {
       description: "Working devices can be refurbished and reused.",
     },
   ],
+  textile: [
+    {
+      title: "Tote Bag",
+      description: "Sew old fabric into a reusable shopping bag.",
+    },
+    {
+      title: "Cleaning Rags",
+      description: "Cut into squares for reusable cleaning cloths.",
+    },
+    {
+      title: "Patchwork",
+      description: "Combine scraps into a quilt or cushion cover.",
+    },
+  ],
+  hazardous: [
+    {
+      title: "Take to Drop-off",
+      description: "Bring to a hazardous waste collection point.",
+    },
+    {
+      title: "Check for Refill",
+      description: "Some containers can be refilled instead of discarded.",
+    },
+    {
+      title: "Donate Unused Portions",
+      description: "Community programs may accept unopened items.",
+    },
+  ],
+  batteries: [
+    {
+      title: "Battery Recycling Drop-off",
+      description: "Take to a designated battery collection point.",
+    },
+    {
+      title: "Power Small Projects",
+      description: "Test if partially used batteries still work for low-drain devices.",
+    },
+    {
+      title: "Magnet Storage",
+      description: "Old battery casings can hold small magnets or pins.",
+    },
+  ],
+  composite: [
+    {
+      title: "Storage Container",
+      description: "Rinse and reuse cartons for storing dry goods.",
+    },
+    {
+      title: "Seed Starter",
+      description: "Cut open and use as a small planter for seedlings.",
+    },
+    {
+      title: "Fire Starter",
+      description: "Dry cartons can help kindle a fire safely.",
+    },
+  ],
+  wood: [
+    {
+      title: "Shelving",
+      description: "Repurpose planks into small shelves or holders.",
+    },
+    {
+      title: "Garden Stakes",
+      description: "Cut into stakes for supporting plants.",
+    },
+    {
+      title: "Kindling",
+      description: "Untreated wood scraps can be used as kindling.",
+    },
+  ],
+  toys: [
+    {
+      title: "Donate",
+      description: "Give working toys to charities or shelters.",
+    },
+    {
+      title: "Decorative Display",
+      description: "Use old toys for art projects or shadow boxes.",
+    },
+    {
+      title: "Manufacturer Recycling",
+      description: "Check for brand-specific take-back programs.",
+    },
+  ],
+  kitchenware: [
+    {
+      title: "Planters",
+      description: "Use old pots, mugs, or bowls to grow herbs.",
+    },
+    {
+      title: "Organizers",
+      description: "Repurpose containers for storing utensils or supplies.",
+    },
+    {
+      title: "Donate",
+      description: "Intact items can be donated to thrift stores.",
+    },
+  ],
   unknown: [
     {
       title: "Reuse Creatively",

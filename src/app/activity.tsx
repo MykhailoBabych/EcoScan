@@ -174,7 +174,7 @@ export default function ActivityScreen() {
 
           {/* Options */}
           {question.options.map((option, i) => {
-            let bg = theme.backgroundElement;
+            let bg: string = theme.backgroundElement;
             let border = "transparent";
             if (selectedAnswer !== null) {
               if (i === question.correctIndex) { bg = "#16a34a22"; border = "#16a34a"; }
