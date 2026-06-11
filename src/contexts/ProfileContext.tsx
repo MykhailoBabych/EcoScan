@@ -54,6 +54,7 @@ type ProfileContextType = {
   recordScan: (scan: Omit<ScanRecord, "id" | "timestamp">) => Promise<RecordScanResult>;
   updateScanUpcyclingIdeas: (scanId: string, ideas: string[]) => Promise<void>;
   resetProfile: () => Promise<void>;
+  logOut: () => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -213,6 +214,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     await ProfileService.save(fresh);
   }, []);
 
+  const logOut = useCallback(async () => {
+    const fresh = emptyProfile();
+    setProfile(fresh);
+    await ProfileService.signOut();
+  }, []);
+
   const isProfileComplete = !isLoading && profile.name.trim().length > 0;
   const level = getLevelForPoints(profile.ecoPoints);
   const levelProgress = getProgressToNextLevel(profile.ecoPoints);
@@ -239,6 +246,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         recordScan,
         updateScanUpcyclingIdeas,
         resetProfile,
+        logOut,
       }}
     >
       {children}

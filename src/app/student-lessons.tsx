@@ -256,7 +256,7 @@ export default function StudentLessonsScreen() {
           onPress={() => router.back()}
         >
           <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
-          <Text style={styles.backText}>Settings</Text>
+          <Text style={styles.backText}>Activity</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Lessons</Text>
         <View style={{ flex: 1 }} />

@@ -282,4 +282,16 @@ export const ProfileService = {
 
     return true;
   },
+
+  async signOut(): Promise<boolean> {
+    await Storage.remove(STORAGE_KEYS.PROFILE);
+
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn("[ProfileService] sign out failed:", error);
+    }
+
+    return true;
+  },
 };

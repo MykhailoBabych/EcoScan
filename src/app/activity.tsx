@@ -1,5 +1,6 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
+import { useRouter } from "expo-router";
 import { SymbolView, SymbolViewProps } from "expo-symbols";
 import { useState } from "react";
 import {
@@ -39,7 +40,10 @@ export default function ActivityScreen() {
     "main",
   );
   const theme = useTheme();
-  const { totalScans } = useProfile();
+  const router = useRouter();
+  const { schoolRole, totalScans } = useProfile();
+  const isTeacher = schoolRole === "teacher";
+  const isStudent = schoolRole === "student";
 
   const ACHIEVEMENTS: Achievement[] = [
     {
@@ -167,6 +171,38 @@ export default function ActivityScreen() {
         </Text>
       </View>
       <ScrollView style={styles.scrollView}>
+        {(isTeacher || isStudent) && (
+          <View
+            style={[styles.section, { backgroundColor: theme.backgroundElement }]}
+          >
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() =>
+                router.push(isTeacher ? "/lessons" : "/student-lessons")
+              }
+            >
+              <View style={styles.rowLeft}>
+                <View
+                  style={[styles.iconContainer, { backgroundColor: "#28a745" }]}
+                >
+                  <SymbolView name="book.fill" size={20} tintColor="#fff" />
+                </View>
+                <View>
+                  <Text style={[styles.rowText, { color: theme.text }]}>
+                    Lessons
+                  </Text>
+                  <Text style={styles.rowSubtitle}>
+                    {isTeacher
+                      ? "Create and assign tasks"
+                      : "Browse and complete tasks"}
+                  </Text>
+                </View>
+              </View>
+              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View
           style={[styles.section, { backgroundColor: theme.backgroundElement }]}
         >
@@ -267,6 +303,11 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 17,
+  },
+  rowSubtitle: {
+    color: "#8e8e93",
+    fontSize: 12,
+    marginTop: 2,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
