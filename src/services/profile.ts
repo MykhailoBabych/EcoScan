@@ -1,5 +1,6 @@
 import { Storage, STORAGE_KEYS } from "./storage";
 import { supabase } from "./supabase";
+import { getCompletedAchievementIds } from "./achievements";
 
 export type WasteCategory =
   | "plastic"
@@ -36,6 +37,7 @@ export type UserProfile = {
   lastScanLabel: string | null;
   categoryStats: CategoryStats;
   scanHistory: ScanRecord[];
+  unlockedAchievementIds: string[];
   useType: UseType | null;
   schoolRole: SchoolRole | null;
 };
@@ -126,6 +128,7 @@ export function emptyProfile(): UserProfile {
       unknown: 0,
     },
     scanHistory: [],
+    unlockedAchievementIds: [],
     useType: null,
     schoolRole: null,
   };
@@ -144,6 +147,9 @@ function normalizeProfile(profile: UserProfile): UserProfile {
       ...profile.categoryStats,
     },
     scanHistory: profile.scanHistory ?? [],
+    unlockedAchievementIds:
+      profile.unlockedAchievementIds ??
+      getCompletedAchievementIds(profile.totalScans ?? fallback.totalScans),
     useType: profile.useType ?? null,
     schoolRole: profile.schoolRole ?? null,
   };
@@ -179,6 +185,7 @@ export const ProfileService = {
         .order("timestamp_ms", { ascending: false })
         .limit(100);
 
+      const localProfile = await Storage.get<UserProfile>(STORAGE_KEYS.PROFILE);
       const scanHistory: ScanRecord[] = (scans ?? []).map((scan: any) => ({
         id: scan.id,
         timestamp: scan.timestamp_ms,
@@ -199,6 +206,9 @@ export const ProfileService = {
         lastScanLabel: null,
         categoryStats: row.category_stats ?? emptyProfile().categoryStats,
         scanHistory,
+        unlockedAchievementIds:
+          localProfile?.unlockedAchievementIds ??
+          getCompletedAchievementIds(row.total_scans ?? 0),
         useType: row.use_type ?? null,
         schoolRole: row.school_role ?? null,
       });

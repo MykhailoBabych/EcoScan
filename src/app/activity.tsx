@@ -1,7 +1,8 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
+import { ACHIEVEMENTS } from "@/services/achievements";
 import { useRouter } from "expo-router";
-import { SymbolView, SymbolViewProps } from "expo-symbols";
+import { SymbolView } from "expo-symbols";
 import { useState } from "react";
 import {
   SafeAreaView,
@@ -11,15 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-// achievment object
-export type Achievement = {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  icon: SymbolViewProps["name"];
-};
 
 // for testing purpose
 const LEADERBOARD = [
@@ -44,23 +36,6 @@ export default function ActivityScreen() {
   const { schoolRole, totalScans } = useProfile();
   const isTeacher = schoolRole === "teacher";
   const isStudent = schoolRole === "student";
-
-  const ACHIEVEMENTS: Achievement[] = [
-    {
-      id: "1",
-      title: "My first scan!",
-      description: "Scan an object for the first time",
-      completed: totalScans >= 1,
-      icon: "qrcode.viewfinder",
-    },
-    {
-      id: "2",
-      title: "Experienced Environmentalist",
-      description: "Scan 10 objects",
-      completed: totalScans >= 10,
-      icon: "leaf.fill",
-    },
-  ];
 
   const renderHeader = (title: string, backView: "main", backLabel: string) => (
     <View style={styles.header}>
@@ -128,7 +103,11 @@ export default function ActivityScreen() {
         {renderHeader("Achievements", "main", "Activity")}
         <ScrollView style={styles.scrollView}>
           <View style={styles.achievementsGrid}>
-            {ACHIEVEMENTS.map((item) => (
+            {ACHIEVEMENTS.map((achievement) => {
+              const completed = totalScans >= achievement.scanGoal;
+              const item = { ...achievement, completed };
+
+              return (
               <View
                 key={item.id}
                 style={[
@@ -140,7 +119,7 @@ export default function ActivityScreen() {
                 <View
                   style={[
                     styles.achievementIcon,
-                    { backgroundColor: item.completed ? "#34c759" : "#8e8e93" },
+                    { backgroundColor: completed ? "#34c759" : "#8e8e93" },
                   ]}
                 >
                   <SymbolView name={item.icon} size={32} tintColor="#fff" />
@@ -152,7 +131,8 @@ export default function ActivityScreen() {
                   {item.description}
                 </Text>
               </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
       </SafeAreaView>

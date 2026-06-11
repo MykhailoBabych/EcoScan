@@ -7,6 +7,11 @@ import React, {
   useState,
 } from "react";
 
+import { AchievementToast } from "@/components/achievement-toast";
+import {
+  Achievement,
+  getNewlyUnlockedAchievements,
+} from "@/services/achievements";
 import {
   ProfileService,
   ScanRecord,
@@ -62,6 +67,7 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(emptyProfile());
   const [isLoading, setIsLoading] = useState(true);
+  const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
 
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -155,6 +161,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const prev = profileRef.current;
       const today = new Date().toISOString().slice(0, 10);
       const nextStreak = prev.lastScanDate === today ? prev.scanStreak + 1 : 1;
+      const nextTotalScans = prev.totalScans + 1;
+      const newAchievements = getNewlyUnlockedAchievements(
+        nextTotalScans,
+        prev.unlockedAchievementIds,
+      );
       const result = calcPointsForScan(
         scan.category,
         scan.objectLabel,
@@ -169,14 +180,23 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         timestamp: Date.now(),
       };
+      const newAchievementIds = newAchievements.map(
+        (achievement) => achievement.id,
+      );
 
       await updateProfile((current) => ({
         ...current,
         ecoPoints: current.ecoPoints + result.points,
-        totalScans: current.totalScans + 1,
+        totalScans: nextTotalScans,
         scanStreak: newStreak,
         lastScanDate: today,
         lastScanLabel: scan.objectLabel,
+        unlockedAchievementIds: [
+          ...new Set([
+            ...(current.unlockedAchievementIds ?? []),
+            ...newAchievementIds,
+          ]),
+        ],
         categoryStats: result.awarded
           ? {
               ...current.categoryStats,
@@ -185,6 +205,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           : current.categoryStats,
         scanHistory: [record, ...current.scanHistory].slice(0, 100),
       }));
+
+      if (newAchievements.length > 0) {
+        setAchievementQueue((current) => [...current, ...newAchievements]);
+      }
 
       return {
         pointsEarned: result.points,
@@ -217,7 +241,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const logOut = useCallback(async () => {
     const fresh = emptyProfile();
     setProfile(fresh);
+    setAchievementQueue([]);
     await ProfileService.signOut();
+  }, []);
+
+  const dismissAchievement = useCallback(() => {
+    setAchievementQueue((current) => current.slice(1));
   }, []);
 
   const isProfileComplete = !isLoading && profile.name.trim().length > 0;
@@ -250,6 +279,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <AchievementToast
+        achievement={achievementQueue[0] ?? null}
+        onDone={dismissAchievement}
+      />
     </ProfileContext.Provider>
   );
 }
