@@ -21,8 +21,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 // Search radius for nearby places in meters (currently 10km)
-const SEARCH_RADIUS_METERS = 10_000;
+const SEARCH_RADIUS_METERS = 5_000;
 const EARTH_RADIUS_METERS = 6_371_000;
+const MAX_VISIBLE_STORES = 15;
 
 type PlaceType = "recycling" | "store" | "vending";
 
@@ -69,13 +70,53 @@ type Coordinates = {
 };
 
 const LARGE_STORE_SHOPS = new Set(["hypermarket", "department_store", "mall"]);
+const MAJOR_STORE_CHAINS = [
+  "lidl",
+  "kaufland",
+  "carrefour",
+  "auchan",
+  "mega image",
+  "profi",
+  "penny",
+  "selgros",
+  "metro",
+  "cora",
+  "supeco",
+  "la cocos",
+  "dedeman",
+  "brico depot",
+  "leroy merlin",
+  "hornbach",
+];
+
+const normalizeStoreName = (value?: string) =>
+  value
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim() ?? "";
+
+const isMajorStoreChain = (tags: Record<string, string>) => {
+  const searchableName = [
+    tags.brand,
+    tags.operator,
+    tags.name,
+    tags["brand:wikidata"],
+  ]
+    .map(normalizeStoreName)
+    .filter(Boolean)
+    .join(" ");
+
+  return MAJOR_STORE_CHAINS.some((chain) => searchableName.includes(chain));
+};
 
 const isLargeStore = (tags: Record<string, string>) => {
   if (LARGE_STORE_SHOPS.has(tags.shop)) {
     return true;
   }
 
-  return tags.shop === "supermarket" && Boolean(tags.brand || tags.operator);
+  return tags.shop === "supermarket" && isMajorStoreChain(tags);
 };
 
 const isRelevantRecyclingPlace = (tags: Record<string, string>) =>
@@ -166,19 +207,39 @@ export default function MapScreen() {
     vending: true,
     store: true,
   });
-  const filtersWidth = useSharedValue(92);
-  const dropdownWidth = useSharedValue(180);
+  const filtersWidth = useSharedValue(154);
+  const dropdownWidth = useSharedValue(220);
   const dropdownProgress = useSharedValue(0);
   const locateIconScale = useSharedValue(1);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLoadingPlacesRef = useRef(false);
 
-  const filteredPlaces = places.filter(
-    (place) =>
-      selectedTypes[place.type] &&
-      userLocation &&
-      getDistanceMeters(userLocation, place) <= SEARCH_RADIUS_METERS,
-  );
+  const filteredPlaces = userLocation
+    ? places
+        .filter(
+          (place) =>
+            selectedTypes[place.type] &&
+            getDistanceMeters(userLocation, place) <= SEARCH_RADIUS_METERS,
+        )
+        .sort((a, b) => {
+          if (a.type !== "store" && b.type === "store") return -1;
+          if (a.type === "store" && b.type !== "store") return 1;
+          return (
+            getDistanceMeters(userLocation, a) -
+            getDistanceMeters(userLocation, b)
+          );
+        })
+        .filter((place, index, list) => {
+          if (place.type !== "store") return true;
+          return (
+            list.slice(0, index + 1).filter((item) => item.type === "store")
+              .length <= MAX_VISIBLE_STORES
+          );
+        })
+    : [];
+  const activeFilterCount = PLACE_TYPE_OPTIONS.filter(
+    (option) => selectedTypes[option.type],
+  ).length;
 
   const filtersButtonAnimatedStyle = useAnimatedStyle(() => ({
     width: filtersWidth.value,
@@ -220,12 +281,12 @@ export default function MapScreen() {
     setIsFiltersRendered(true);
     setIsFiltersOpen(true);
 
-    filtersWidth.value = withTiming(180, {
+    filtersWidth.value = withTiming(154, {
       duration: 220,
       easing: Easing.out(Easing.quad),
     });
 
-    dropdownWidth.value = withTiming(180, {
+    dropdownWidth.value = withTiming(220, {
       duration: 220,
       easing: Easing.out(Easing.quad),
     });
@@ -242,12 +303,12 @@ export default function MapScreen() {
     clearCloseTimer();
     setIsFiltersOpen(false);
 
-    filtersWidth.value = withTiming(92, {
+    filtersWidth.value = withTiming(154, {
       duration: 220,
       easing: Easing.out(Easing.quad),
     });
 
-    dropdownWidth.value = withTiming(168, {
+    dropdownWidth.value = withTiming(220, {
       duration: 220,
       easing: Easing.out(Easing.quad),
     });
@@ -504,7 +565,7 @@ export default function MapScreen() {
         onPressOut={releaseLocateButton}
       >
         <Animated.View style={locateIconAnimatedStyle}>
-          <SymbolView name="location.fill" size={20} tintColor="#0a84ff" />
+          <SymbolView name="location.fill" size={20} tintColor="#28a745" />
         </Animated.View>
       </AnimatedPressable>
 
@@ -513,7 +574,20 @@ export default function MapScreen() {
           style={[styles.filtersButton, filtersButtonAnimatedStyle]}
           onPress={toggleFilters}
         >
-          <Text style={styles.filtersButtonText}>Filters ▾</Text>
+          <SymbolView
+            name="line.3.horizontal.decrease.circle.fill"
+            size={18}
+            tintColor="#fff"
+          />
+          <Text style={styles.filtersButtonText}>Filters</Text>
+          <View style={styles.filterCountBadge}>
+            <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+          </View>
+          <SymbolView
+            name={isFiltersOpen ? "chevron.up" : "chevron.down"}
+            size={13}
+            tintColor="#fff"
+          />
         </AnimatedPressable>
 
         {isFiltersRendered ? (
@@ -538,7 +612,7 @@ export default function MapScreen() {
                         : styles.filterCheckboxUnselected,
                     ]}
                   >
-                    {isSelected ? "✓" : "✕"}
+                    {isSelected ? "✓" : ""}
                   </Text>
                   <Text style={styles.filterLabel}>{option.label}</Text>
                 </Pressable>
@@ -552,7 +626,7 @@ export default function MapScreen() {
         <View style={styles.statusPanel}>
           <View style={styles.statusHeader}>
             {isLoadingPlaces ? (
-              <ActivityIndicator color="#0a84ff" />
+              <ActivityIndicator color="#28a745" />
             ) : (
               <SymbolView
                 name={
@@ -587,7 +661,11 @@ export default function MapScreen() {
               onPress={loadNearbyPlaces}
               disabled={isLoadingPlaces}
             >
-              <SymbolView name="arrow.clockwise" size={14} tintColor="#fff" />
+              <SymbolView
+                name="arrow.clockwise"
+                size={14}
+                tintColor="#28a745"
+              />
               <Text style={styles.retryButtonText}>Retry</Text>
             </Pressable>
           ) : null}
@@ -672,7 +750,7 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: 12,
     borderRadius: 12,
-    backgroundColor: "#0a84ff",
+    backgroundColor: "#28a745",
     paddingVertical: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -690,52 +768,96 @@ const styles = StyleSheet.create({
   filtersContainer: {
     position: "absolute",
     top: 52,
-    left: 12,
+    left: 16,
   },
   filtersButton: {
-    backgroundColor: "#0a84ff",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: "#28a745",
+    borderRadius: 23,
+    height: 46,
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 7,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    elevation: 4,
   },
   filtersButtonText: {
     color: "#fff",
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  filterCountBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  filterCountText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
   },
   filtersDropdown: {
     marginTop: 8,
-    backgroundColor: "#0a84ff",
-    borderRadius: 10,
-    paddingVertical: 6,
-    width: 180,
-    maxWidth: 180,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingVertical: 8,
+    width: 220,
+    maxWidth: 220,
     alignSelf: "flex-start",
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 5,
     transformOrigin: "top left",
   },
   filterItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
   },
   filterCheckbox: {
-    width: 18,
-    marginRight: 8,
-    fontSize: 16,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    fontSize: 14,
     fontWeight: "800",
-    lineHeight: 18,
+    lineHeight: 22,
     textAlign: "center",
+    overflow: "hidden",
   },
   filterCheckboxSelected: {
     color: "#fff",
+    backgroundColor: "#28a745",
   },
   filterCheckboxUnselected: {
-    color: "rgba(255, 214, 214, 0.9)",
+    color: "transparent",
+    backgroundColor: "#edf7ef",
+    borderColor: "#9fd8ad",
+    borderWidth: 1,
   },
   filterLabel: {
-    color: "#fff",
+    color: "#1f2937",
+    fontSize: 14,
+    fontWeight: "600",
   },
   markerBubble: {
     width: 30,
