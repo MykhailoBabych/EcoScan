@@ -5,9 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useProfile } from '@/contexts/ProfileContext';
 import { WasteCategory } from '@/services/profile';
 import { useTheme } from '@/hooks/use-theme';
@@ -92,7 +95,7 @@ function ScanItem({ item }: { item: ReturnType<typeof useProfile>['scanHistory']
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
-export function ProfileScreen() {
+export default function ProfileScreen() {
   const {
     name, characterIndex,
     ecoPoints, totalScans,
@@ -101,6 +104,7 @@ export function ProfileScreen() {
   } = useProfile();
 
   const theme = useTheme();
+  const router = useRouter();
 
   const col = characterIndex % 3;
   const row = Math.floor(characterIndex / 3);
@@ -123,6 +127,14 @@ export function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
+          <Text style={styles.headerBackText}>Settings</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
+        <View style={styles.headerRight} />
+      </View>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[styles.scroll, { backgroundColor: theme.background }]}
@@ -283,6 +295,31 @@ function StatCard({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerBackText: {
+    color: '#0a84ff',
+    fontSize: 17,
+    marginLeft: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerRight: {
+    flex: 1,
+  },
 
   // Hero
   heroCard: {

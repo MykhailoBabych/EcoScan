@@ -28,9 +28,9 @@ export default function AppTabs() {
         <Icon sf="viewfinder" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="profile">
-        <Label>Profile</Label>
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
+      <NativeTabs.Trigger name="planet">
+        <Label>Planet</Label>
+        <Icon sf={{ default: "globe.europe.africa", selected: "globe.europe.africa.fill" }} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">

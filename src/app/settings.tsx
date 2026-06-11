@@ -160,6 +160,27 @@ export function SettingsScreenContent() {
         <View
           style={[styles.section, { backgroundColor: theme.backgroundElement }]}
         >
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push("/profile")}
+          >
+            <View style={styles.rowLeft}>
+              <View
+                style={[styles.iconContainer, { backgroundColor: "#34c759" }]}
+              >
+                <SymbolView
+                  name="person.fill"
+                  size={20}
+                  tintColor="#fff"
+                />
+              </View>
+              <Text style={[styles.rowText, { color: theme.text }]}>
+                Profile
+              </Text>
+            </View>
+            <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+          </TouchableOpacity>
+          <View style={styles.separator} />
           <TouchableOpacity style={styles.row} onPress={() => setView("about")}>
             <View style={styles.rowLeft}>
               <View
