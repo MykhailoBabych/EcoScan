@@ -26,6 +26,22 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/**
+ * Brand / accent colors used across the screens. These preserve the exact
+ * values already in use — they are named here so components can reference one
+ * source of truth instead of scattering raw hex literals.
+ */
+export const Brand = {
+  primary: "#28a745", // main brand green (tab bar, primary buttons)
+  primaryVivid: "#16a34a", // quiz / activity accents
+  primaryBright: "#30d158", // onboarding / highlights
+  primaryIos: "#34c759", // iOS-style green accent
+  info: "#0a84ff", // links / back buttons
+  warning: "#ff9500", // leaderboard / log-out icon
+  textMuted: "#8e8e93", // secondary text on plain backgrounds
+  hairline: "#38383a", // separators
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

@@ -32,5 +32,4 @@ export const Storage = {
 
 export const STORAGE_KEYS = {
   PROFILE: "ecoscan:profile",
-  SCAN_HISTORY: "ecoscan:scan_history",
 } as const;

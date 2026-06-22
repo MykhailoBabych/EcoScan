@@ -256,11 +256,6 @@ export const StudentLessonsService = {
       return [];
     }
   },
-
-  async tryComplete(scannedLabel: string): Promise<StudentLesson | null> {
-    const completed = await StudentLessonsService.tryCompleteAll(scannedLabel);
-    return completed[0] ?? null;
-  },
 };
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────

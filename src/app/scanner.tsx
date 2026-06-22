@@ -15,6 +15,10 @@ import {
   View,
 } from "react-native";
 
+// Google Cloud Vision API key — provided at build time via .env
+// (EXPO_PUBLIC_VISION_API_KEY). See .env.example. Never hardcode credentials.
+const VISION_API_KEY = process.env.EXPO_PUBLIC_VISION_API_KEY;
+
 type CategoryDef = {
   category: WasteCategory;
   keywords: string[];
@@ -396,9 +400,17 @@ export default function ScannerScreen() {
   };
 
   const analyzeImage = async (base64: string) => {
+    if (!VISION_API_KEY) {
+      Alert.alert(
+        "Scanner not configured",
+        "Image recognition is unavailable because the Vision API key is missing. Add EXPO_PUBLIC_VISION_API_KEY to your .env file (see .env.example).",
+      );
+      return null;
+    }
+
     try {
       const response = await fetch(
-        "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyArhmioiHCIqN9WsEx_3wyCpyc-ykDto6Q",
+        `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

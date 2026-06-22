@@ -1,11 +1,11 @@
-import { SymbolViewProps } from "expo-symbols";
+import { IconName } from "@/components/icon";
 
 export type Achievement = {
   id: string;
   title: string;
   description: string;
   scanGoal: number;
-  icon: SymbolViewProps["name"];
+  icon: IconName;
 };
 
 export const ACHIEVEMENTS: Achievement[] = [

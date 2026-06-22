@@ -23,10 +23,15 @@
 !/package-lock.json
 !/metro.config.js
 !/tsconfig.json
+!/babel.config.js
+!/.env.example
 
 # Always ignore sensitive/env/private files even if added in allowed folders
-#**/.env
-#**/.env.*
+**/.env
+**/.env.*
+# ...but keep the committed example template (never contains real secrets)
+!/.env.example
+!**/.env.example
 **/*.pem
 **/*.key
 **/*.p8

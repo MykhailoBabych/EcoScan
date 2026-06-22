@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { AppIcon } from '@/components/icon';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '@/hooks/use-theme';
@@ -241,7 +241,7 @@ function SendStudentModal({
 
         {/* Lesson hint */}
         <View style={styles.sendLessonHint}>
-          <SymbolView name="book.fill" size={14} tintColor="#0a84ff" />
+          <AppIcon name="book.fill" size={14} tintColor="#0a84ff" />
           <Text style={[styles.sendTopicHint, { color: theme.textSecondary }]}>
             {' '}<Text style={{ color: theme.text, fontWeight: '700' }}>{lessonTopic}</Text>
           </Text>
@@ -287,7 +287,7 @@ function SendStudentModal({
                     ) : null}
                   </View>
                   {isSelected && (
-                    <SymbolView name="checkmark.circle.fill" size={22} tintColor="#30d158" />
+                    <AppIcon name="checkmark.circle.fill" size={22} tintColor="#30d158" />
                   )}
                 </TouchableOpacity>
               );
@@ -330,14 +330,14 @@ function LessonCard({
       <View style={styles.cardHeader}>
         <View style={styles.cardTitleRow}>
           <View style={styles.lessonIcon}>
-            <SymbolView name="book.fill" size={16} tintColor="#fff" />
+            <AppIcon name="book.fill" size={16} tintColor="#fff" />
           </View>
           <Text style={[styles.cardTopic, { color: theme.text }]} numberOfLines={1}>
             {lesson.topic}
           </Text>
         </View>
         <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
-          <SymbolView name="trash" size={18} tintColor="#ff453a" />
+          <AppIcon name="trash" size={18} tintColor="#ff453a" />
         </TouchableOpacity>
       </View>
 
@@ -431,7 +431,7 @@ export default function LessonsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
+          <AppIcon name="chevron.left" size={24} tintColor="#0a84ff" />
           <Text style={styles.backText}>Activity</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Lessons</Text>
@@ -439,7 +439,7 @@ export default function LessonsScreen() {
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
-          <SymbolView name="plus.circle.fill" size={28} tintColor="#30d158" />
+          <AppIcon name="plus.circle.fill" size={28} tintColor="#30d158" />
         </TouchableOpacity>
       </View>
 

@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -249,35 +250,47 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setAchievementQueue((current) => current.slice(1));
   }, []);
 
-  const isProfileComplete = !isLoading && profile.name.trim().length > 0;
-  const level = getLevelForPoints(profile.ecoPoints);
-  const levelProgress = getProgressToNextLevel(profile.ecoPoints);
+  const value = useMemo<ProfileContextType>(() => {
+    const level = getLevelForPoints(profile.ecoPoints);
+    const levelProgress = getProgressToNextLevel(profile.ecoPoints);
+    const isProfileComplete = !isLoading && profile.name.trim().length > 0;
+
+    return {
+      isLoading,
+      isProfileComplete,
+      name: profile.name,
+      email: profile.email,
+      characterIndex: profile.characterIndex,
+      ecoPoints: profile.ecoPoints,
+      totalScans: profile.totalScans,
+      scanHistory: profile.scanHistory,
+      categoryStats: profile.categoryStats,
+      level,
+      levelProgress,
+      useType: profile.useType,
+      schoolRole: profile.schoolRole,
+      completeOnboarding,
+      reloadProfile,
+      awardPoints,
+      recordScan,
+      updateScanUpcyclingIdeas,
+      resetProfile,
+      logOut,
+    };
+  }, [
+    profile,
+    isLoading,
+    completeOnboarding,
+    reloadProfile,
+    awardPoints,
+    recordScan,
+    updateScanUpcyclingIdeas,
+    resetProfile,
+    logOut,
+  ]);
 
   return (
-    <ProfileContext.Provider
-      value={{
-        isLoading,
-        isProfileComplete,
-        name: profile.name,
-        email: profile.email,
-        characterIndex: profile.characterIndex,
-        ecoPoints: profile.ecoPoints,
-        totalScans: profile.totalScans,
-        scanHistory: profile.scanHistory,
-        categoryStats: profile.categoryStats,
-        level,
-        levelProgress,
-        useType: profile.useType,
-        schoolRole: profile.schoolRole,
-        completeOnboarding,
-        reloadProfile,
-        awardPoints,
-        recordScan,
-        updateScanUpcyclingIdeas,
-        resetProfile,
-        logOut,
-      }}
-    >
+    <ProfileContext.Provider value={value}>
       {children}
       <AchievementToast
         achievement={achievementQueue[0] ?? null}

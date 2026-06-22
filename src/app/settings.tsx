@@ -1,7 +1,7 @@
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
-import { SymbolView } from "expo-symbols";
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import { AppIcon } from "@/components/icon";
 import {
   Alert,
   SafeAreaView,
@@ -13,9 +13,9 @@ import {
 } from "react-native";
 
 export default function SettingsScreen() {
-  const [view, setView] = useState("main");
   const { logOut } = useProfile();
   const theme = useTheme();
+  const router = useRouter();
 
   const handleLogOut = () => {
     Alert.alert(
@@ -33,105 +33,6 @@ export default function SettingsScreen() {
     );
   };
 
-  const renderHeader = (title: string, backView: string, backLabel: string) => (
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setView(backView)}
-      >
-        <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
-        <Text style={styles.headerBackText}>{backLabel}</Text>
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>{title}</Text>
-      <View style={styles.headerRight} />
-    </View>
-  );
-
-  if (view === "creators") {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
-      >
-        {renderHeader("Creators", "about", "About Us")}
-        <ScrollView style={styles.scrollView}>
-          <View
-            style={[
-              styles.textContainer,
-              { backgroundColor: theme.backgroundElement },
-            ]}
-          >
-            <Text style={[styles.bodyText, { color: theme.text }]}>
-              Creators: Mykhailo Babych, Anton Opria, Mark Shatalov, Nazar
-              Kyrychenko.
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  if (view === "purpose") {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
-      >
-        {renderHeader("App Purpose", "about", "About Us")}
-        <ScrollView style={styles.scrollView}>
-          <View
-            style={[
-              styles.textContainer,
-              { backgroundColor: theme.backgroundElement },
-            ]}
-          >
-            <Text style={[styles.bodyText, { color: theme.text }]}>
-              EcoScan's goal — help people make the right environmental
-              decisions in everyday life: scan an object → get advice to recycle
-              or reuse it, with nearby collection points shown on the map.
-            </Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  if (view === "about") {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: theme.background }]}
-      >
-        {renderHeader("About Us", "main", "Settings")}
-        <ScrollView style={styles.scrollView}>
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: theme.backgroundElement },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => setView("creators")}
-            >
-              <Text style={[styles.rowText, { color: theme.text }]}>
-                Creators
-              </Text>
-              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
-            </TouchableOpacity>
-            <View style={styles.separator} />
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => setView("purpose")}
-            >
-              <Text style={[styles.rowText, { color: theme.text }]}>
-                App Purpose
-              </Text>
-              <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
@@ -145,14 +46,14 @@ export default function SettingsScreen() {
       </View>
       <ScrollView style={styles.scrollView}>
         <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-          <TouchableOpacity style={styles.row} onPress={() => setView('about')}>
+          <TouchableOpacity style={styles.row} onPress={() => router.push("/about")}>
             <View style={styles.rowLeft}>
               <View style={[styles.iconContainer, { backgroundColor: '#28a745' }]}>
-                <SymbolView name="info.circle.fill" size={20} tintColor="#fff" />
+                <AppIcon name="info.circle.fill" size={20} tintColor="#fff" />
               </View>
               <Text style={[styles.rowText, { color: theme.text }]}>About Us</Text>
             </View>
-            <SymbolView name="chevron.right" size={20} tintColor="#8e8e93" />
+            <AppIcon name="chevron.right" size={20} tintColor="#8e8e93" />
           </TouchableOpacity>
         </View>
 
@@ -164,7 +65,7 @@ export default function SettingsScreen() {
               <View
                 style={[styles.iconContainer, { backgroundColor: "#ff9500" }]}
               >
-                <SymbolView
+                <AppIcon
                   name="rectangle.portrait.and.arrow.right"
                   size={20}
                   tintColor="#fff"
@@ -200,19 +101,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  headerBackText: {
-    color: "#0a84ff",
-    fontSize: 17,
-    marginLeft: 4,
-  },
-  headerRight: {
-    flex: 1,
-  },
   section: {
     borderRadius: 10,
     marginBottom: 24,
@@ -239,19 +127,5 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 17,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#38383a",
-    marginLeft: 16,
-  },
-  textContainer: {
-    borderRadius: 10,
-    padding: 16,
-    marginTop: 10,
-  },
-  bodyText: {
-    fontSize: 17,
-    lineHeight: 24,
   },
 });
