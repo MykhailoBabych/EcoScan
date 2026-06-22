@@ -1,4 +1,5 @@
 import { Brand, Colors } from "@/constants/theme";
+import { haptics } from "@/services/haptics";
 import { Tabs } from "expo-router";
 import { AppIcon, IconName } from "@/components/icon";
 import {
@@ -58,6 +59,7 @@ function CustomTabBar({ state, navigation }: any) {
           });
 
           if (!isFocused && !event.defaultPrevented) {
+            haptics.light();
             navigation.navigate(route.name);
           }
         };

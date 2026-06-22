@@ -1,5 +1,6 @@
 import { Achievement } from "@/services/achievements";
 import { AppIcon } from "@/components/icon";
+import { haptics } from "@/services/haptics";
 import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
@@ -62,6 +63,7 @@ export function AchievementToast({
   useEffect(() => {
     if (!achievement) return undefined;
 
+    haptics.success();
     const timeout = setTimeout(onDone, 3400);
     return () => clearTimeout(timeout);
   }, [achievement, onDone]);

@@ -30,7 +30,12 @@ export type IconName =
   | "rectangle.portrait.and.arrow.right"
   | "trophy.fill"
   | "star.fill"
-  | "xmark.circle.fill";
+  | "xmark.circle.fill"
+  | "sparkles"
+  | "scan"
+  | "bolt.fill"
+  | "clock.fill"
+  | "arrow.triangle.2.circlepath";
 
 type IconSpec =
   | { family: "ionicons"; glyph: keyof typeof Ionicons.glyphMap }
@@ -67,6 +72,11 @@ const ICON_MAP: Record<IconName, IconSpec> = {
   "trophy.fill": { family: "ionicons", glyph: "trophy" },
   "star.fill": { family: "ionicons", glyph: "star" },
   "xmark.circle.fill": { family: "ionicons", glyph: "close-circle" },
+  sparkles: { family: "ionicons", glyph: "sparkles" },
+  scan: { family: "ionicons", glyph: "scan" },
+  "bolt.fill": { family: "ionicons", glyph: "flash" },
+  "clock.fill": { family: "ionicons", glyph: "time" },
+  "arrow.triangle.2.circlepath": { family: "ionicons", glyph: "sync" },
 };
 
 type AppIconProps = {

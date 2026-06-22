@@ -10,6 +10,7 @@ import {
 } from "@/services/quiz";
 import { useRouter } from "expo-router";
 import { AppIcon } from "@/components/icon";
+import { haptics } from "@/services/haptics";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -62,8 +63,11 @@ export default function QuizScreen() {
     setShowExplanation(true);
     const isCorrect = index === quizQuestions[quizIndex].correctIndex;
     if (isCorrect) {
+      haptics.success();
       setQuizCorrect((c) => c + 1);
       setQuizPointsTotal((p) => p + POINTS_PER_CORRECT);
+    } else {
+      haptics.warning();
     }
   };
 
@@ -75,6 +79,9 @@ export default function QuizScreen() {
       if (finalPoints > 0) await awardPoints(finalPoints);
       setQuizPointsTotal(finalPoints);
       setQuizFinished(true);
+      // Celebrate the result: a richer pattern for a perfect run.
+      if (isPerfect) haptics.levelUp();
+      else haptics.success();
     } else {
       setQuizIndex(nextIndex);
       setSelectedAnswer(null);

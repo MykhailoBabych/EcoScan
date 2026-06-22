@@ -13,6 +13,7 @@
     "expo-device": "~8.0.10",
     "expo-font": "~14.0.12",
     "expo-glass-effect": "~0.1.10",
+    "expo-haptics": "~15.0.8",
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.12",
     "expo-location": "~19.0.8",
@@ -35,7 +36,6 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
-    "@types/react-native": "^0.72.8",
     "babel-preset-expo": "~54.0.11",
     "react-native-svg-transformer": "^1.5.3",
     "typescript": "~5.9.2"
