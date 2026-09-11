@@ -6,13 +6,13 @@ The app combines scanning, local educational content, map-based discovery, and p
 
 ## Screenshots
 
-| Map | Activity | Eco Quiz | Recycling Guide |
-| :---: | :---: | :---: | :---: |
-| <img src="assets/screenshots/map.png" alt="Map" width="220" /> | <img src="assets/screenshots/activity.png" alt="Activity" width="220" /> | <img src="assets/screenshots/eco-quiz.png" alt="Eco Quiz" width="220" /> | <img src="assets/screenshots/recycling-guide.png" alt="Recycling Guide" width="220" /> |
+|                              Map                               |                                 Activity                                 |                                 Eco Quiz                                 |                                    Recycling Guide                                     |
+| :------------------------------------------------------------: | :----------------------------------------------------------------------: | :----------------------------------------------------------------------: | :------------------------------------------------------------------------------------: |
+| <img src="assets/screenshots/map.PNG" alt="Map" width="220" /> | <img src="assets/screenshots/activity.PNG" alt="Activity" width="220" /> | <img src="assets/screenshots/eco-quiz.PNG" alt="Eco Quiz" width="220" /> | <img src="assets/screenshots/recycling-guide.PNG" alt="Recycling Guide" width="220" /> |
 
-| Planet Health | Leaderboard | Profile |
-| :---: | :---: | :---: |
-| <img src="assets/screenshots/planet-health.png" alt="Planet Health" width="220" /> | <img src="assets/screenshots/leaderboard.png" alt="Leaderboard" width="220" /> | <img src="assets/screenshots/profile.png" alt="Profile" width="220" /> |
+|                                   Planet Health                                    |                                  Leaderboard                                   |                                Profile                                 |
+| :--------------------------------------------------------------------------------: | :----------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
+| <img src="assets/screenshots/planet-health.PNG" alt="Planet Health" width="220" /> | <img src="assets/screenshots/leaderboard.PNG" alt="Leaderboard" width="220" /> | <img src="assets/screenshots/profile.PNG" alt="Profile" width="220" /> |
 
 ## What the app does
 
