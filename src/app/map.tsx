@@ -21,7 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 // Search radius for nearby places in meters (currently 10km)
-const SEARCH_RADIUS_METERS = 5_000;
+const SEARCH_RADIUS_METERS = 50_000;
 const EARTH_RADIUS_METERS = 6_371_000;
 const MAX_VISIBLE_STORES = 15;
 

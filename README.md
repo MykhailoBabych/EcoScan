@@ -4,6 +4,22 @@ EcoScan is an Expo-based mobile app for learning how to sort waste, find nearby 
 
 The app combines scanning, local educational content, map-based discovery, and profile gamification. It is designed to help users make better recycling decisions in real time while tracking progress over time.
 
+## Screenshots
+
+![Planet Health](assets/screenshots/planet-health.png)
+
+![Recycling Guide](assets/screenshots/recycling-guide.png)
+
+![Profile](assets/screenshots/profile.png)
+
+![Map](assets/screenshots/map.png)
+
+![Activity](assets/screenshots/activity.png)
+
+![Leaderboard](assets/screenshots/leaderboard.png)
+
+![Eco Quiz](assets/screenshots/eco-quiz.png)
+
 ## What the app does
 
 - Scans everyday objects and suggests a waste category, recycling advice, and upcycling ideas.
