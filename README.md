@@ -1,8 +1,11 @@
 # EcoScan
 
-EcoScan is an Expo-based mobile app for learning how to sort waste, find nearby recycling locations, and turn everyday items into something useful again.
+[![CI](https://github.com/Kiriesh45/EcoScan/actions/workflows/ci.yml/badge.svg)](https://github.com/Kiriesh45/EcoScan/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-The app combines scanning, local educational content, map-based discovery, and profile gamification. It is designed to help users make better recycling decisions in real time while tracking progress over time.
+EcoScan is a mobile app that helps people sort waste correctly. Point the camera at an item to learn which bin it belongs in and get ideas for reusing it. You can also find recycling points nearby and watch your own planet grow as you recycle more.
+
+EcoScan was built by a team of four students at a hackathon in Athens in June 2026.
 
 ## Screenshots
 
@@ -14,76 +17,108 @@ The app combines scanning, local educational content, map-based discovery, and p
 | :--------------------------------------------------------------------------------: | :----------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
 | <img src="assets/screenshots/planet-health.PNG" alt="Planet Health" width="220" /> | <img src="assets/screenshots/leaderboard.PNG" alt="Leaderboard" width="220" /> | <img src="assets/screenshots/profile.PNG" alt="Profile" width="220" /> |
 
-## What the app does
+## Features
 
-- Scans everyday objects and suggests a waste category, recycling advice, and upcycling ideas.
-- Shows nearby recycling points, bottle/can return machines, and large stores on a map.
-- Provides a learning hub with eco facts, recycling rules, and upcycling inspiration.
-- Tracks eco points, scan history, streaks, category stats, and achievement progress.
-- Supports onboarding and profile setup before entering the main app.
-- Includes lesson features for school and teacher workflows backed by Supabase.
+- **Scan:** take a photo of an item and get its waste category, how to recycle it, and AI-generated upcycling ideas.
+- **Map:** find recycling points, bottle and can return machines, and large stores near you, with filters.
+- **Planet:** your recycling grows a planet through five stages, from a barren world to a living paradise.
+- **Activity:** take eco quizzes, read the recycling guide, see achievements, and compete on the leaderboard.
+- **Profile:** eco points, levels, scan streaks, statistics by category, and scan history.
+- **School mode:** teachers create lessons and students complete them.
+- **Offline:** your profile and scans are saved on the device and synced when you sign in.
+- **Haptic feedback** for scans, rewards, and achievements.
 
-## Main screens
+## Team
 
-- Map: discovers nearby recycling-related locations using device location.
-- Scan: classifies items and returns recycling guidance plus upcycling suggestions.
-- Learn: presents curated facts, sorting rules, and reuse ideas.
-- Activity: shows recent scan activity and progress.
-- Planet: environmental progress and impact views.
-- Profile: level, points, scan history, and achievements.
-- Settings: app and account options.
+| Member | GitHub | What they built |
+| --- | --- | --- |
+| **Mykhailo Babych** | [@MykhailoBabych](https://github.com/MykhailoBabych) | Project setup and the first camera and profile screens; settings; the Activity tab with achievements and a leaderboard backed by Supabase; choosing personal or school use; teacher–student lessons with Supabase |
+| **Anton Opria** | [@reynnello](https://github.com/reynnello) | Map of recycling locations using OpenStreetMap, with filters; upcycling ideas in the scanner; tab icons and SVG support; achievement animations; merging the team's features together; layout fixes, README, and screenshots |
+| **Mark Shatalov** | [@Mark-Shatalov](https://github.com/Mark-Shatalov) | Item recognition with Google Cloud Vision; keeping API keys out of the code; more waste categories; the first interactive planet; eco quizzes; the recycling guide |
+| **Nazar Kyrychenko** | [@Kiriesh45](https://github.com/Kiriesh45) | Sign-up, onboarding, and saved profiles; eco points and levels; AI upcycling ideas with Gemini; a redesign with shared UI components; planet stages and health; haptic feedback; tests and CI |
 
 ## Tech stack
 
-- Expo and React Native
-- Expo Router for file-based navigation
-- TypeScript
-- Supabase for auth and remote data sync
-- AsyncStorage for offline/local persistence
-- react-native-maps and expo-location for map features
-- expo-camera for scanning
-- react-native-reanimated for UI motion
-
-## Data and services
-
-- Local profile and scan data are cached on device.
-- Supabase is used for sign-in and syncing profiles, lessons, and scan history.
-- Upcycling ideas can fall back to built-in suggestions when no Gemini key is configured.
-- The app can still function offline for several flows using local storage.
-
-## Project structure
-
-- src/app: route screens and navigation entry points
-- src/components: reusable UI components
-- src/contexts: app state providers such as profile state
-- src/data: static eco learning content
-- src/services: storage, profile, lessons, quiz, map, and AI helpers
-- src/hooks: theme and color-scheme helpers
-- src/constants: shared theme values
+- [Expo](https://expo.dev/) (SDK 54), React Native, and TypeScript
+- Expo Router for navigation based on files
+- [Supabase](https://supabase.com/) for sign-in, profiles, lessons, and the leaderboard
+- AsyncStorage for data saved on the device
+- Google Cloud Vision to recognize items
+- Google Gemini for upcycling ideas (optional)
+- OpenStreetMap (Overpass API), react-native-maps, and expo-location for the map
+- expo-camera, expo-haptics, and react-native-reanimated
+- Jest (jest-expo) and GitHub Actions for tests and CI
 
 ## Getting started
 
-1. Install dependencies
+### Requirements
 
+- Node.js 20 or newer
+- The [Expo Go](https://expo.dev/go) app, an Android emulator, or an iOS simulator
+- A Supabase project and a Google Cloud Vision API key
+
+### Setup
+
+1. Install dependencies:
+
+   ```bash
    npm install
+   ```
 
-2. Start the app
+2. Create your environment file and fill in the keys:
 
+   ```bash
+   cp .env.example .env
+   ```
+
+   | Variable | Required | Used for |
+   | --- | --- | --- |
+   | `EXPO_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+   | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase public (anon) key |
+   | `EXPO_PUBLIC_VISION_API_KEY` | Yes, for scanning | Google Cloud Vision |
+   | `EXPO_PUBLIC_GEMINI_API_KEY` | No | AI upcycling ideas. Without it, the app shows built-in ideas instead |
+
+   The app will not start without the two Supabase variables.
+
+3. Set up the database. Run [`supabase/migrations/20260610000000_initial_schema.sql`](supabase/migrations/20260610000000_initial_schema.sql) in the Supabase SQL Editor, or use `supabase db push` with the [Supabase CLI](https://supabase.com/docs/guides/cli). It creates the tables, Row Level Security policies, and the leaderboard and lesson functions.
+
+4. Start the app:
+
+   ```bash
    npx expo start
+   ```
 
-You can then open the app in Expo Go, an emulator, or a development build.
+   Then open it in Expo Go, an emulator, or a development build. The map and scanner need location and camera permissions.
 
-## Notes
+## Scripts
 
-- The default route redirects to the map screen.
-- The app uses file-based routing under src/app.
-- Some features depend on location and camera permissions.
-- Optional Gemini support can be enabled with EXPO_PUBLIC_GEMINI_API_KEY.
+| Command | What it does |
+| --- | --- |
+| `npm start` | Start the Expo dev server |
+| `npm run android` / `npm run ios` / `npm run web` | Start on a specific platform |
+| `npm test` | Run the unit tests |
+| `npm run typecheck` | Check types with TypeScript |
+| `npm run lint` | Run the linter |
 
-## Resetting the starter content
+## Project structure
 
-If you want to restore the generated starter layout, run:
+```
+src/
+├── app/          Screens (Expo Router routes)
+├── components/   Shared UI components
+├── constants/    Theme and waste category data
+├── contexts/     App state, such as the user profile
+├── hooks/        Theme, planet, and eco score hooks
+└── services/     Storage, Supabase, scoring, planet, quiz, guide, lessons, AI
+    └── __tests__/  Unit tests
+supabase/
+└── migrations/   Database schema and security policies
+```
 
-npm run reset-project
+## Contributing
 
-This moves the current starter files into app-example and recreates a blank app directory.
+Pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and review steps. To report a security issue, follow [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE)

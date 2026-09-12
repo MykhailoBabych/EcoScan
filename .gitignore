@@ -11,13 +11,14 @@
 !/.vscode/**
 !/assets/
 !/assets/**
-!/scripts/
-!/scripts/**
 !/src/
 !/src/**
+!/supabase/
+!/supabase/**
 
 # Allow only root files to publish
 !/.gitignore
+!/.mailmap
 !/LICENSE
 !/README.md
 !/SECURITY.md

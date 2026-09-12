@@ -1,0 +1,11 @@
+# Maps every git identity of a team member to one name and email,
+# so `git shortlog` and `git blame` show one entry per person.
+# Format: Proper Name <proper@email> Commit Name <commit@email>
+
+Anton Opria <antinopry.vk@gmail.com> reynnello <antinopry.vk@gmail.com>
+Anton Opria <antinopry.vk@gmail.com> reynnello <re1yn9524@gmail.com>
+Anton Opria <antinopry.vk@gmail.com> Anton Reynov <re1yn9524@gmail.com>
+Anton Opria <antinopry.vk@gmail.com> Anton <126974319+reynnello@users.noreply.github.com>
+Mark Shatalov <C00312571@setu.ie> Mark-Shatalov <C00312571@setu.ie>
+Mykhailo Babych <C00309423@setu.ie> MykhailoBabych <C00309423@setu.ie>
+Nazar Kyrychenko <nazarkirichenko08@gmail.com> kiresh <nazarkirichenko08@gmail.com>

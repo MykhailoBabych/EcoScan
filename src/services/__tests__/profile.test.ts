@@ -54,7 +54,7 @@ describe("calcPointsForScan", () => {
     expect(calcPointsForScan("glass", "jar", seen, 1).points).toBe(10);
   });
 
-  it("adds a streak bonus every third day", () => {
+  it("adds a streak bonus on every third streak step", () => {
     const seen = { ...stats(), glass: 2 };
     expect(calcPointsForScan("glass", "jar", seen, 3).points).toBe(25);
     expect(calcPointsForScan("glass", "jar", seen, 6).points).toBe(25);
