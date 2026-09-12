@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
+import { AppIcon } from '@/components/icon';
 import { useState } from 'react';
 import { useProfile } from '@/contexts/ProfileContext';
 import { UseType, SchoolRole } from '@/services/profile';
@@ -157,7 +157,7 @@ export default function OnboardingScreen() {
 
           <View style={styles.avatarRow}>
             <TouchableOpacity onPress={handlePrev} style={styles.arrowBtn}>
-              <SymbolView name="chevron.left.circle.fill" size={40} tintColor="#38383a" />
+              <AppIcon name="chevron.left.circle.fill" size={40} tintColor="#38383a" />
             </TouchableOpacity>
 
             <View style={styles.spriteContainer}>
@@ -169,7 +169,7 @@ export default function OnboardingScreen() {
             </View>
 
             <TouchableOpacity onPress={handleNext} style={styles.arrowBtn}>
-              <SymbolView name="chevron.right.circle.fill" size={40} tintColor="#38383a" />
+              <AppIcon name="chevron.right.circle.fill" size={40} tintColor="#38383a" />
             </TouchableOpacity>
           </View>
 

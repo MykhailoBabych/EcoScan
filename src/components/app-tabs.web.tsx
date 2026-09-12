@@ -7,7 +7,7 @@ import {
   TabTriggerSlotProps,
 } from "expo-router/ui";
 import { Href } from "expo-router";
-import { SymbolView, SymbolViewProps } from "expo-symbols";
+import { AppIcon, IconName } from "@/components/icon";
 import { Pressable, StyleSheet, useColorScheme, View } from "react-native";
 
 import { ThemedText } from "./themed-text";
@@ -19,7 +19,7 @@ type WebTab = {
   name: string;
   href: Href;
   label: string;
-  icon: SymbolViewProps["name"];
+  icon: IconName;
 };
 
 const WEB_TABS: WebTab[] = [
@@ -52,7 +52,7 @@ export function TabButton({
   icon,
   isFocused,
   ...props
-}: TabTriggerSlotProps & { icon: SymbolViewProps["name"] }) {
+}: TabTriggerSlotProps & { icon: IconName }) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "dark" ? "dark" : "light"];
 
@@ -62,7 +62,7 @@ export function TabButton({
         type={isFocused ? "backgroundSelected" : "backgroundElement"}
         style={styles.tabButtonView}
       >
-        <SymbolView
+        <AppIcon
           name={icon}
           size={15}
           tintColor={isFocused ? colors.text : colors.textSecondary}

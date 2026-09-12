@@ -6,7 +6,7 @@ import {
 } from "@/services/lessons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
+import { AppIcon } from "@/components/icon";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -38,7 +38,7 @@ function AvailableCard({
     <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
       <View style={styles.cardHeader}>
         <View style={styles.lessonIcon}>
-          <SymbolView name="book.fill" size={16} tintColor="#fff" />
+          <AppIcon name="book.fill" size={16} tintColor="#fff" />
         </View>
         <Text
           style={[styles.cardTopic, { color: theme.text }]}
@@ -123,7 +123,7 @@ function MyLessonCard({
             isCompleted && { backgroundColor: "#30d158" },
           ]}
         >
-          <SymbolView
+          <AppIcon
             name={isCompleted ? "checkmark.seal.fill" : "book.fill"}
             size={16}
             tintColor="#fff"
@@ -255,7 +255,7 @@ export default function StudentLessonsScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <SymbolView name="chevron.left" size={24} tintColor="#0a84ff" />
+          <AppIcon name="chevron.left" size={24} tintColor="#0a84ff" />
           <Text style={styles.backText}>Activity</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Lessons</Text>

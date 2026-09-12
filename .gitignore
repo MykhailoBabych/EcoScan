@@ -5,28 +5,38 @@
 !/.gitignore
 
 # Allow only project folders to publish
+!/.github/
+!/.github/**
 !/.vscode/
 !/.vscode/**
 !/assets/
 !/assets/**
-!/scripts/
-!/scripts/**
 !/src/
 !/src/**
+!/supabase/
+!/supabase/**
 
 # Allow only root files to publish
 !/.gitignore
+!/.mailmap
 !/LICENSE
 !/README.md
+!/SECURITY.md
+!/CONTRIBUTING.md
 !/app.json
 !/package.json
 !/package-lock.json
 !/metro.config.js
 !/tsconfig.json
+!/babel.config.js
+!/.env.example
 
 # Always ignore sensitive/env/private files even if added in allowed folders
-#**/.env
-#**/.env.*
+**/.env
+**/.env.*
+# ...but keep the committed example template (never contains real secrets)
+!/.env.example
+!**/.env.example
 **/*.pem
 **/*.key
 **/*.p8

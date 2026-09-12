@@ -1,6 +1,7 @@
-import { Colors } from "@/constants/theme";
+import { Brand, Colors } from "@/constants/theme";
+import { haptics } from "@/services/haptics";
 import { Tabs } from "expo-router";
-import { SymbolView, SymbolViewProps } from "expo-symbols";
+import { AppIcon, IconName } from "@/components/icon";
 import {
   StyleSheet,
   Text,
@@ -13,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 type TabDef = {
   name: string;
   label: string;
-  icon: SymbolViewProps["name"];
+  icon: IconName;
   center?: boolean;
 };
 
@@ -25,7 +26,7 @@ const TABS: TabDef[] = [
   { name: "profile", label: "Profile", icon: "person.fill" },
 ];
 
-const ACCENT = "#28a745";
+const ACCENT = Brand.primary;
 
 function CustomTabBar({ state, navigation }: any) {
   const scheme = useColorScheme() ?? "light";
@@ -58,6 +59,7 @@ function CustomTabBar({ state, navigation }: any) {
           });
 
           if (!isFocused && !event.defaultPrevented) {
+            haptics.light();
             navigation.navigate(route.name);
           }
         };
@@ -73,7 +75,7 @@ function CustomTabBar({ state, navigation }: any) {
                 onPress={onPress}
                 activeOpacity={0.85}
               >
-                <SymbolView name={tab.icon} size={28} tintColor="#ffffff" />
+                <AppIcon name={tab.icon} size={28} tintColor="#ffffff" />
               </TouchableOpacity>
               <Text
                 style={[
@@ -94,7 +96,7 @@ function CustomTabBar({ state, navigation }: any) {
             onPress={onPress}
             activeOpacity={0.7}
           >
-            <SymbolView
+            <AppIcon
               name={tab.icon}
               size={24}
               tintColor={isFocused ? ACCENT : colors.textSecondary}
@@ -127,10 +129,16 @@ export default function AppTabs() {
       <Tabs.Screen name="profile" />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="onboarding" options={{ href: null }} />
       <Tabs.Screen name="lessons" options={{ href: null }} />
       <Tabs.Screen name="student-lessons" options={{ href: null }} />
+      <Tabs.Screen name="quiz" options={{ href: null }} />
+      <Tabs.Screen name="guide" options={{ href: null }} />
+      <Tabs.Screen name="leaderboard" options={{ href: null }} />
+      <Tabs.Screen name="achievements" options={{ href: null }} />
+      <Tabs.Screen name="about" options={{ href: null }} />
+      <Tabs.Screen name="creators" options={{ href: null }} />
+      <Tabs.Screen name="purpose" options={{ href: null }} />
     </Tabs>
   );
 }

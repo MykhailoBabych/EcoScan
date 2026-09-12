@@ -1,4 +1,15 @@
+import { EcoPointsBadge } from "@/components/eco-points-badge";
+import { AppIcon } from "@/components/icon";
+import { ScanHistoryCard } from "@/components/scan-history-card";
+import { ScanningLine } from "@/components/scanning-line";
+import {
+  ResultTab,
+  ScanResultCard,
+  ScanResultData,
+} from "@/components/scan-result-card";
 import { useProfile } from "@/contexts/ProfileContext";
+import { useTheme } from "@/hooks/use-theme";
+import { haptics } from "@/services/haptics";
 import { StudentLessonsService } from "@/services/lessons";
 import { WasteCategory } from "@/services/profile";
 import { getUpcyclingIdeas, UpcyclingIdea } from "@/services/upcycling-ai";
@@ -7,13 +18,19 @@ import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Button,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+// Google Cloud Vision API key — provided at build time via .env
+// (EXPO_PUBLIC_VISION_API_KEY). See .env.example. Never hardcode credentials.
+const VISION_API_KEY = process.env.EXPO_PUBLIC_VISION_API_KEY;
+
+const RECENT_SCANS_LIMIT = 15;
 
 type CategoryDef = {
   category: WasteCategory;
@@ -218,21 +235,6 @@ const getEcoAdvice = (labels: any[]): EcoAdvice => {
   };
 };
 
-type ScanResult = EcoAdvice & {
-  pointsEarned: number;
-  awarded: boolean;
-  reason: string;
-  upcyclingIdeas: UpcyclingIdea[];
-  upcyclingLoading: boolean;
-  completedLessons: {
-    topic: string;
-    xpReward: number;
-    pointsReward: number;
-  }[];
-};
-
-type ResultTab = "recycle" | "upcycle";
-
 const DEFAULT_BACK_LENS = "Back Camera";
 
 function getPreferredBackLens(lenses: string[]) {
@@ -275,22 +277,34 @@ export default function ScannerScreen() {
   const [selectedLens, setSelectedLens] = useState<string | undefined>();
   const cameraRef = useRef<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const [result, setResult] = useState<ScanResultData | null>(null);
   const [tab, setTab] = useState<ResultTab>("recycle");
   const [completedLessonIndex, setCompletedLessonIndex] = useState(0);
 
-  const { recordScan, updateScanUpcyclingIdeas, schoolRole, awardPoints } = useProfile();
+  const theme = useTheme();
+  const { recordScan, updateScanUpcyclingIdeas, schoolRole, awardPoints, ecoPoints, scanHistory } =
+    useProfile();
 
-  if (!permission) return <View style={styles.container} />;
+  if (!permission) {
+    return <View style={[styles.safe, { backgroundColor: theme.background }]} />;
+  }
 
   if (!permission.granted) {
     return (
-      <View style={styles.containerCentered}>
-        <Text style={styles.message}>
-          We need your permission to access the camera
+      <SafeAreaView
+        style={[styles.safe, styles.permission, { backgroundColor: theme.background }]}
+      >
+        <Text style={styles.permissionEmoji}>📷</Text>
+        <Text style={[styles.permissionTitle, { color: theme.text }]}>
+          Camera access needed
         </Text>
-        <Button onPress={requestPermission} title="Allow Access" />
-      </View>
+        <Text style={[styles.permissionText, { color: theme.textSecondary }]}>
+          We use the camera to identify objects and show you how to recycle them.
+        </Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Allow Camera Access</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     );
   }
 
@@ -298,6 +312,7 @@ export default function ScannerScreen() {
     if (!cameraRef.current) return;
 
     try {
+      haptics.medium();
       setAnalyzing(true);
       setResult(null);
       setTab("recycle");
@@ -322,7 +337,18 @@ export default function ScannerScreen() {
         recyclingAdvice: advice.advice,
         upcyclingIdeas: [],
       });
-      let completedLessons: ScanResult["completedLessons"] = [];
+
+      // Tactile confirmation: a celebratory tap when points land, a softer
+      // signal for a recognized-but-not-rewarded item, a warning for unknowns.
+      if (awarded) {
+        haptics.success();
+      } else if (reason === "duplicate") {
+        haptics.light();
+      } else {
+        haptics.warning();
+      }
+
+      let completedLessons: ScanResultData["completedLessons"] = [];
 
       if (schoolRole === "student") {
         const completed = await StudentLessonsService.tryCompleteAll(
@@ -396,9 +422,17 @@ export default function ScannerScreen() {
   };
 
   const analyzeImage = async (base64: string) => {
+    if (!VISION_API_KEY) {
+      Alert.alert(
+        "Scanner not configured",
+        "Image recognition is unavailable because the Vision API key is missing. Add EXPO_PUBLIC_VISION_API_KEY to your .env file (see .env.example).",
+      );
+      return null;
+    }
+
     try {
       const response = await fetch(
-        "https://vision.googleapis.com/v1/images:annotate?key=AIzaSyArhmioiHCIqN9WsEx_3wyCpyc-ykDto6Q",
+        `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -427,331 +461,288 @@ export default function ScannerScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <CameraView
-        style={styles.camera}
-        facing="back"
-        selectedLens={selectedLens}
-        zoom={0}
-        onAvailableLensesChanged={handleAvailableLensesChanged}
-        onCameraReady={handleCameraReady}
-        ref={cameraRef}
-      >
-        <View style={styles.buttonContainer} pointerEvents="box-none">
-          <TouchableOpacity
-            style={[styles.captureButton, analyzing && styles.buttonDisabled]}
-            onPress={takePhotoAndAnalyze}
-            disabled={analyzing}
-          >
-            {analyzing ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.text}>Scan Object</Text>
-            )}
-          </TouchableOpacity>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.background }]}
+      edges={["top"]}
+    >
+      {/* ── Header: title + Eco Points balance ──────────────────────────── */}
+      <View style={styles.header}>
+        <View>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Scan</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            Point, scan, recycle smarter
+          </Text>
         </View>
-      </CameraView>
+        <EcoPointsBadge points={ecoPoints} tone="solid" />
+      </View>
 
-      {result && (
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultTitle}>{result.label}</Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Large camera scanning area ────────────────────────────────── */}
+        <View style={styles.viewfinder}>
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            selectedLens={selectedLens}
+            zoom={0}
+            onAvailableLensesChanged={handleAvailableLensesChanged}
+            onCameraReady={handleCameraReady}
+            ref={cameraRef}
+          />
 
-          {result.awarded ? (
-            <View style={styles.pointsBadge}>
-              <Text style={styles.pointsBadgeText}>
-                +{result.pointsEarned} Eco Points
-              </Text>
-            </View>
-          ) : result.reason === "duplicate" ? (
-            <View style={styles.infoBadge}>
-              <Text style={styles.infoBadgeText}>
-                Already scanned - no points
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.infoBadge}>
-              <Text style={styles.infoBadgeText}>
-                Not recognized - no points
-              </Text>
+          {/* Corner frame brackets */}
+          <View style={styles.frame} pointerEvents="none">
+            <View style={[styles.corner, styles.cornerTL]} />
+            <View style={[styles.corner, styles.cornerTR]} />
+            <View style={[styles.corner, styles.cornerBL]} />
+            <View style={[styles.corner, styles.cornerBR]} />
+          </View>
+
+          {/* Sweeping scan line (only while analyzing) */}
+          <View style={styles.scanLineArea} pointerEvents="none">
+            <ScanningLine active={analyzing} />
+          </View>
+
+          {/* AI scanner pill */}
+          <View style={styles.scannerPill} pointerEvents="none">
+            <AppIcon name="sparkles" size={13} tintColor="#fff" />
+            <Text style={styles.scannerPillText}>AI Scanner</Text>
+          </View>
+
+          {/* Analyzing overlay */}
+          {analyzing && (
+            <View style={styles.analyzingOverlay} pointerEvents="none">
+              <ActivityIndicator color="#fff" size="large" />
+              <Text style={styles.analyzingText}>Analyzing…</Text>
             </View>
           )}
 
-          <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[styles.tabButton, tab === "recycle" && styles.tabActive]}
-              onPress={() => setTab("recycle")}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === "recycle" && styles.tabTextActive,
-                ]}
-              >
-                Recycle
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.tabButton,
-                tab === "upcycle" && styles.tabActiveUpcycle,
-              ]}
-              onPress={() => setTab("upcycle")}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === "upcycle" && styles.tabTextActive,
-                ]}
-              >
-                Upcycle
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={{ paddingBottom: 4 }}
-          >
-            {tab === "recycle" ? (
-              <Text style={styles.resultAdvice}>{result.advice}</Text>
-            ) : result.upcyclingLoading ? (
-              <View style={styles.upcycleLoading}>
-                <ActivityIndicator color="#8b5cf6" />
-                <Text style={styles.upcycleLoadingText}>Generating ideas...</Text>
-              </View>
-            ) : result.upcyclingIdeas.length === 0 ? (
-              <Text style={styles.resultAdvice}>
-                No upcycling ideas available yet.
-              </Text>
-            ) : (
-              result.upcyclingIdeas.map((idea, index) => (
-                <View key={`${idea.title}-${index}`} style={styles.ideaRow}>
-                  <Text style={styles.ideaBullet}>+</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.ideaTitle}>{idea.title}</Text>
-                    {!!idea.description && (
-                      <Text style={styles.ideaDesc}>{idea.description}</Text>
-                    )}
-                  </View>
-                </View>
-              ))
-            )}
-          </ScrollView>
-
-          {result.completedLessons.length > 0 ? (
-            <View style={styles.lessonBadge}>
-              <Text style={styles.lessonBadgeTitle}>
-                Lesson Complete
-                {result.completedLessons.length > 1
-                  ? ` ${completedLessonIndex + 1}/${result.completedLessons.length}`
-                  : ""}
-              </Text>
-              <Text style={styles.lessonBadgeName}>
-                {result.completedLessons[completedLessonIndex].topic}
-              </Text>
-              <Text style={styles.lessonBadgeReward}>
-                +{result.completedLessons[completedLessonIndex].xpReward} XP / +
-                {result.completedLessons[completedLessonIndex].pointsReward} pts
-              </Text>
-              {result.completedLessons.length > 1 ? (
-                <View style={styles.lessonPager}>
-                  <TouchableOpacity
-                    style={styles.lessonPagerButton}
-                    onPress={() =>
-                      setCompletedLessonIndex((index) =>
-                        index === 0
-                          ? result.completedLessons.length - 1
-                          : index - 1,
-                      )
-                    }
-                  >
-                    <Text style={styles.lessonPagerText}>Prev</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.lessonPagerButton}
-                    onPress={() =>
-                      setCompletedLessonIndex(
-                        (index) => (index + 1) % result.completedLessons.length,
-                      )
-                    }
-                  >
-                    <Text style={styles.lessonPagerText}>Next</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
+          {/* Capture button */}
           <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setResult(null)}
+            style={[styles.captureButton, analyzing && styles.captureDisabled]}
+            onPress={takePhotoAndAnalyze}
+            disabled={analyzing}
+            activeOpacity={0.85}
           >
-            <Text style={styles.closeButtonText}>Close</Text>
+            <AppIcon name="scan" size={22} tintColor="#fff" />
+            <Text style={styles.captureText}>
+              {analyzing ? "Scanning…" : "Scan Object"}
+            </Text>
           </TouchableOpacity>
         </View>
-      )}
-    </View>
+
+        {/* ── Detection result ──────────────────────────────────────────── */}
+        {result && (
+          <ScanResultCard
+            result={result}
+            tab={tab}
+            onTabChange={setTab}
+            completedLessonIndex={completedLessonIndex}
+            onLessonIndexChange={setCompletedLessonIndex}
+            onClose={() => setResult(null)}
+          />
+        )}
+
+        {/* ── Recent scans ──────────────────────────────────────────────── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <AppIcon name="clock.fill" size={17} tintColor={theme.textSecondary} />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Recent Scans
+              </Text>
+            </View>
+            {scanHistory.length > 0 && (
+              <Text style={[styles.sectionCount, { color: theme.textSecondary }]}>
+                {scanHistory.length}
+              </Text>
+            )}
+          </View>
+
+          {scanHistory.length === 0 ? (
+            <View style={[styles.empty, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={styles.emptyEmoji}>📷</Text>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                No scans yet. Scan your first object to start earning Eco Points!
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.historyList}>
+              {scanHistory.slice(0, RECENT_SCANS_LIMIT).map((scan) => (
+                <ScanHistoryCard key={scan.id} scan={scan} />
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
-  containerCentered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000",
-  },
-  message: {
-    textAlign: "center",
-    paddingBottom: 15,
-    color: "#fff",
-    fontSize: 18,
-  },
-  camera: { flex: 1 },
-  buttonContainer: {
-    flex: 1,
+  safe: { flex: 1 },
+
+  // Header
+  header: {
     flexDirection: "row",
-    backgroundColor: "transparent",
-    justifyContent: "center",
-    marginBottom: 72,
-    alignItems: "flex-end",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
+  headerTitle: { fontSize: 30, fontWeight: "800", letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 13, fontWeight: "500", marginTop: 2 },
+
+  scroll: { paddingHorizontal: 20, paddingBottom: 16, gap: 18 },
+
+  // Viewfinder
+  viewfinder: {
+    height: 440,
+    borderRadius: 28,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  frame: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 28,
+  },
+  scanLineArea: {
+    position: "absolute",
+    top: 30,
+    left: 30,
+    right: 30,
+    bottom: 96,
+    overflow: "hidden",
+    borderRadius: 12,
+  },
+  corner: {
+    position: "absolute",
+    width: 38,
+    height: 38,
+    borderColor: "rgba(255,255,255,0.9)",
+  },
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 14,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 14,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 14,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 14,
+  },
+  scannerPill: {
+    position: "absolute",
+    top: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  scannerPillText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  analyzingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  analyzingText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   captureButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
     backgroundColor: "#28a745",
     paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingHorizontal: 32,
     borderRadius: 30,
-    minWidth: 150,
-    alignItems: "center",
-  },
-  buttonDisabled: { backgroundColor: "#1E7E34", opacity: 0.7 },
-  text: { fontSize: 18, fontWeight: "bold", color: "white" },
-  resultContainer: {
-    position: "absolute",
-    bottom: 72,
-    left: 0,
-    right: 0,
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 20,
-    marginHorizontal: 15,
-    alignItems: "center",
-    maxHeight: 430,
+    marginBottom: 24,
+    minWidth: 200,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 5,
   },
-  resultTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  pointsBadge: {
-    backgroundColor: "#e8f8ef",
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  pointsBadgeText: { color: "#1a7f3c", fontWeight: "700", fontSize: 15 },
-  infoBadge: {
-    backgroundColor: "#f0f0f0",
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  infoBadgeText: { color: "#666", fontWeight: "600", fontSize: 14 },
-  lessonBadge: {
-    backgroundColor: "#e8f8ef",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#28a74544",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+  captureDisabled: { backgroundColor: "#1E7E34", opacity: 0.8 },
+  captureText: { color: "#fff", fontSize: 17, fontWeight: "800" },
+
+  // Recent scans section
+  section: { gap: 12 },
+  sectionHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-    gap: 3,
-    marginBottom: 12,
+    justifyContent: "space-between",
   },
-  lessonBadgeTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#28a745",
-  },
-  lessonBadgeName: { fontSize: 14, color: "#333", textAlign: "center" },
-  lessonBadgeReward: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#1a7f3c",
-    marginTop: 2,
-  },
-  lessonPager: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 8,
-  },
-  lessonPagerButton: {
-    backgroundColor: "#28a745",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  lessonPagerText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  tabRow: {
-    flexDirection: "row",
-    backgroundColor: "#f0f0f0",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 12,
-    width: "100%",
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 9,
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionTitle: { fontSize: 19, fontWeight: "800" },
+  sectionCount: { fontSize: 14, fontWeight: "700" },
+  historyList: { gap: 10 },
+  empty: {
+    borderRadius: 20,
+    paddingVertical: 36,
+    paddingHorizontal: 24,
     alignItems: "center",
-  },
-  tabActive: { backgroundColor: "#28a745" },
-  tabActiveUpcycle: { backgroundColor: "#8b5cf6" },
-  tabText: { fontSize: 15, fontWeight: "600", color: "#666" },
-  tabTextActive: { color: "#fff" },
-  tabContent: {
-    width: "100%",
-    minHeight: 78,
-    maxHeight: 150,
-    marginBottom: 12,
-  },
-  resultAdvice: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#333",
-    paddingVertical: 8,
-  },
-  upcycleLoading: { alignItems: "center", paddingVertical: 24, gap: 8 },
-  upcycleLoadingText: { color: "#8b5cf6", fontSize: 14 },
-  ideaRow: {
-    flexDirection: "row",
     gap: 10,
+  },
+  emptyEmoji: { fontSize: 40 },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+
+  // Permission
+  permission: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  permissionEmoji: { fontSize: 56, marginBottom: 4 },
+  permissionTitle: { fontSize: 22, fontWeight: "800" },
+  permissionText: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
     marginBottom: 12,
-    alignItems: "flex-start",
   },
-  ideaBullet: { fontSize: 16 },
-  ideaTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
-  ideaDesc: { fontSize: 13, color: "#666", marginTop: 2, lineHeight: 18 },
-  closeButton: {
-    backgroundColor: "#007bff",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+  permissionButton: {
+    backgroundColor: "#28a745",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 16,
   },
-  closeButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
+  permissionButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

@@ -1,5 +1,6 @@
 import { Achievement } from "@/services/achievements";
-import { SymbolView } from "expo-symbols";
+import { AppIcon } from "@/components/icon";
+import { haptics } from "@/services/haptics";
 import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
@@ -62,6 +63,7 @@ export function AchievementToast({
   useEffect(() => {
     if (!achievement) return undefined;
 
+    haptics.success();
     const timeout = setTimeout(onDone, 3400);
     return () => clearTimeout(timeout);
   }, [achievement, onDone]);
@@ -82,7 +84,7 @@ export function AchievementToast({
           style={styles.content}
         >
           <Animated.View entering={iconPop.duration(640)} style={styles.icon}>
-            <SymbolView name={achievement.icon} size={24} tintColor="#fff" />
+            <AppIcon name={achievement.icon} size={24} tintColor="#fff" />
           </Animated.View>
           <View style={styles.copy}>
             <Text style={styles.eyebrow}>Achievement unlocked</Text>

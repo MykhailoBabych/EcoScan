@@ -1,9 +1,10 @@
+import { CATEGORY_META } from "@/constants/waste-categories";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useTheme } from "@/hooks/use-theme";
 import { WasteCategory } from "@/services/profile";
 import { useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import { useEffect } from "react";
+import { AppIcon } from "@/components/icon";
+import { useEffect, useRef } from "react";
 import {
   Animated,
   Image,
@@ -27,34 +28,14 @@ const FULL_IMAGE_HEIGHT = DISPLAY_HEIGHT * 3;
 const CIRCLE_SIZE = DISPLAY_WIDTH;
 
 // ─── Category config ─────────────────────────────────────────────────────────
-
-const CATEGORY_META: Record<
-  WasteCategory,
-  { label: string; emoji: string; color: string }
-> = {
-  plastic:     { label: "Plastic",      emoji: "🧴", color: "#0ea5e9" },
-  glass:       { label: "Glass",        emoji: "🫙", color: "#8b5cf6" },
-  paper:       { label: "Paper",        emoji: "📄", color: "#f59e0b" },
-  cardboard:   { label: "Cardboard",    emoji: "📦", color: "#d97706" },
-  metal:       { label: "Metal",        emoji: "🥫", color: "#6b7280" },
-  food:        { label: "Food/Organic", emoji: "🍌", color: "#22c55e" },
-  electronics: { label: "Electronics",  emoji: "📱", color: "#ef4444" },
-  textile:     { label: "Textile",      emoji: "👕", color: "#ec4899" },
-  hazardous:   { label: "Hazardous",    emoji: "☢️", color: "#ef4444" },
-  batteries:   { label: "Batteries",    emoji: "🔋", color: "#eab308" },
-  composite:   { label: "Composite",    emoji: "🧃", color: "#f97316" },
-  wood:        { label: "Wood",         emoji: "🪵", color: "#92400e" },
-  toys:        { label: "Toys",         emoji: "🧸", color: "#8b5cf6" },
-  kitchenware: { label: "Kitchenware",  emoji: "🍳", color: "#14b8a6" },
-  unknown:     { label: "Other",        emoji: "❓", color: "#94a3b8" },
-};
+// Category label/emoji/color live in @/constants/waste-categories (CATEGORY_META).
 
 const LEVEL_COLORS = ["#94a3b8", "#22c55e", "#0ea5e9", "#8b5cf6", "#f59e0b"];
 
 // ─── Animated progress bar ────────────────────────────────────────────────────
 
 function ProgressBar({ progress, color }: { progress: number; color: string }) {
-  const anim = new Animated.Value(0);
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(anim, {
@@ -171,7 +152,7 @@ export default function ProfileScreen() {
             { backgroundColor: theme.backgroundElement },
           ]}
         >
-          <SymbolView name="gearshape.fill" size={20} tintColor={theme.text} />
+          <AppIcon name="gearshape.fill" size={20} tintColor={theme.text} />
         </TouchableOpacity>
       </View>
       <ScrollView

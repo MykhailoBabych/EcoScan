@@ -1,7 +1,7 @@
 ﻿import BottleIcon from "@/assets/images/bottle.svg";
 import RecycleIcon from "@/assets/images/recycle.svg";
 import * as Location from "expo-location";
-import { SymbolView } from "expo-symbols";
+import { AppIcon } from "@/components/icon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -565,7 +565,7 @@ export default function MapScreen() {
         onPressOut={releaseLocateButton}
       >
         <Animated.View style={locateIconAnimatedStyle}>
-          <SymbolView name="location.fill" size={20} tintColor="#28a745" />
+          <AppIcon name="location.fill" size={20} tintColor="#28a745" />
         </Animated.View>
       </AnimatedPressable>
 
@@ -574,7 +574,7 @@ export default function MapScreen() {
           style={[styles.filtersButton, filtersButtonAnimatedStyle]}
           onPress={toggleFilters}
         >
-          <SymbolView
+          <AppIcon
             name="line.3.horizontal.decrease.circle.fill"
             size={18}
             tintColor="#fff"
@@ -583,7 +583,7 @@ export default function MapScreen() {
           <View style={styles.filterCountBadge}>
             <Text style={styles.filterCountText}>{activeFilterCount}</Text>
           </View>
-          <SymbolView
+          <AppIcon
             name={isFiltersOpen ? "chevron.up" : "chevron.down"}
             size={13}
             tintColor="#fff"
@@ -628,7 +628,7 @@ export default function MapScreen() {
             {isLoadingPlaces ? (
               <ActivityIndicator color="#28a745" />
             ) : (
-              <SymbolView
+              <AppIcon
                 name={
                   placesError ? "exclamationmark.triangle.fill" : "mappin.slash"
                 }
@@ -661,7 +661,7 @@ export default function MapScreen() {
               onPress={loadNearbyPlaces}
               disabled={isLoadingPlaces}
             >
-              <SymbolView
+              <AppIcon
                 name="arrow.clockwise"
                 size={14}
                 tintColor="#28a745"
