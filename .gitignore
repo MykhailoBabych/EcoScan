@@ -5,6 +5,8 @@
 !/.gitignore
 
 # Allow only project folders to publish
+!/.github/
+!/.github/**
 !/.vscode/
 !/.vscode/**
 !/assets/
@@ -18,6 +20,8 @@
 !/.gitignore
 !/LICENSE
 !/README.md
+!/SECURITY.md
+!/CONTRIBUTING.md
 !/app.json
 !/package.json
 !/package-lock.json
